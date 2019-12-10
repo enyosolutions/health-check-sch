@@ -6,7 +6,7 @@ SmartCronHelper
 ``` console
 $ python -m venv venv
 $ . venv/bin/activate
-$ python install .
+$ pip install .
 ```
 
 ## Test
