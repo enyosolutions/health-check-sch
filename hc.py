@@ -4,6 +4,7 @@ import click
 import arrow
 import json
 
+
 class hcCred:
     def __init__(self, url, api_key):
         self.url = url
@@ -21,14 +22,12 @@ class hcRegistry:
         # read file
         try:
             with open(self.registry, 'r') as myfile:
-                data=myfile.read()
-    
+                data = myfile.read()
+
             # parse file
             self.data = json.loads(data)
-        except Exception as e:
-            print ("could not load registry")
-
-        
+        except Exception:
+            print("could not load registry")
 
     def register(self, id):
         pass
