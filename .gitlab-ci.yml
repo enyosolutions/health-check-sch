@@ -1,0 +1,20 @@
+image: "python:3.7"
+
+before_script:
+  - python --version
+  - pip install .
+  - pip install flake8 pylint
+
+stages:
+  - Static Analysis
+
+flake8:
+  stage: Static Analysis
+  script:
+  - flake8 --max-line-length=120 *.py
+
+pylint:
+  stage: Static Analysis
+  allow_failure: true
+  script:
+  - pylint -d C0301 *.py
