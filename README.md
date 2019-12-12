@@ -20,6 +20,15 @@ registry = hcRegistry(cred, '/var/lib/hcregistry.json')
 
 h = hc(cred)
 h.print_status()
+
+# scan jobs that want to use SCH
+jobs = CronTabs().all.find_command('JOB_ID')
+for job in jobs:
+    print("job:")
+    print(job)
+    hc_id = registry.get_id(job)
+    print(hc_id)
+    print("--------------")
 ```
 
 And run it within the virtual environment
