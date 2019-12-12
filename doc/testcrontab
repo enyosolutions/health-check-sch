@@ -1,4 +1,6 @@
-# Sample cron file that does almost nothing 
-# some comment
-1 0 * * * root JOB_ID=false1 /bin/false
-2 0 * * * root JOB_ID=false2 /bin/false
+
+# bla bla
+1 0 * * * root JOB_ID=falsetest1 /bin/false
+2 0 * * * root JOB_ID=falsetest2 /bin/false
+3 0 * * * root JOB_ID=unknown /bin/false
+4 0 * * * root /bin/false

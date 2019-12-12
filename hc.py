@@ -5,6 +5,7 @@ import arrow
 import json
 import hashlib
 import platform
+import re
 
 
 class hcCred:
@@ -38,19 +39,29 @@ class hcRegistry:
         md5.update(job.command.encode('utf-8'))
         return md5.hexdigest()
 
+    def get_jobid(self, job):
+        regex = r"JOB_ID=(\w*)"
+        match = re.match(regex, job.command)
+        if match:
+            return match.group(1)
+
     def find_by_hash(self, job):
         h = self.get_hash(job)
         return next((elem for elem in self.data if elem['hash'] == h), False)
 
-    def find_by_job_id(self, job):
-        pass
+    def find_by_jobid(self, job):
+        j = self.get_jobid(job)
+        return next((elem for elem in self.data if elem['JOB_ID'] == j), False)
 
     def get_id(self, job):
         r = self.find_by_hash(job)
         if r:
             return r['HC_ID']
 
-        # r = self.find_by_job_id(job)
+        r = self.find_by_jobid(job)
+        if r:
+            return r['HC_ID']
+
         return False
 
     def register(self, id):
