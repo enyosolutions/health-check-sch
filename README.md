@@ -16,7 +16,7 @@ from hc import hc, hcCred, hcRegistry
 
 cred = hcCred('https://hc.example.com/api/v1/', 'mysecretapikey')
 
-registry = hcRegistry(cred, '/var/lib/hcregistry.json')
+registry = hcRegistry(cred, 'doc/hcregistry.json')
 
 h = hc(cred)
 h.print_status()
@@ -40,3 +40,5 @@ $ pip install flake8
 $ flake8 *py
 ```
 
+## Documentation
+* python-crontab <https://pypi.org/project/python-crontab/>
