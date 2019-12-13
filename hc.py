@@ -41,10 +41,17 @@ class hcRegistry:
         return md5.hexdigest()
 
     def get_jobid(self, job):
-        regex = r"JOB_ID=(\w*)"
+        regex = r".*JOB_ID=(\w*)"
         match = re.match(regex, job.command)
         if match:
             return match.group(1)
+
+    def get_tags(self, job):
+        regex = r'.*JOB_TAGS=([\w,]*)'
+        m = re.match(regex, job.command)
+        if m:
+            return m.group(1).replace(',', ' ')
+        return ""
 
     def find_by_hash(self, job):
         h = self.get_hash(job)
@@ -57,14 +64,12 @@ class hcRegistry:
     def get_id(self, job):
         r = self.find_by_hash(job)
         if r:
-            print("lookup match by hash!")
             return r['HC_ID']
 
         r = self.find_by_jobid(job)
         if r:
-            print("lookup match by JOB_ID")
-            # hash has changed, let's update the schedule
-            self.hc.update_check(r, job)
+            # hash has changed, let's update the details
+            self.hc.update_check(r, job, self.get_tags(job))
             return r['HC_ID']
 
         return False
@@ -93,16 +98,16 @@ class hc:
 
         raise Exception('fetching cron checks failed')
 
-    def update_check(self, registration, job):
+
+    def update_check(self, registration, job, tags):
         url = "{apiurl}checks/{code}".format(
                 apiurl=self.cred.url,
                 code=registration['HC_ID']
                 )
-
         data = {
                 'schedule': '* * * * *',
                 'tz': tzlocal.get_localzone().zone,
-                'tags': 'sch host_{}'.format(platform.node())
+                'tags': 'sch host_{} {}'.format(platform.node(), tags)
                 }
 
         try:
