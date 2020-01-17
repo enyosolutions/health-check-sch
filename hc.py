@@ -34,6 +34,7 @@ class hcRegistry:
             print("could not load registry")
 
     def get_hash(self, job):
+        """Returns the unique hash for given cron job"""
         md5 = hashlib.md5()
         md5.update(platform.node().encode('utf-8'))
         md5.update(str(job.slices).encode('utf-8'))
@@ -41,12 +42,14 @@ class hcRegistry:
         return md5.hexdigest()
 
     def get_jobid(self, job):
+        """Returns the value of environment variable JOB_ID if specified in the cron job"""
         regex = r".*JOB_ID=(\w*)"
         match = re.match(regex, job.command)
         if match:
             return match.group(1)
 
     def get_tags(self, job):
+        """Returns the tags specified in the environment variable JOB_TAGS in the cron job"""
         regex = r'.*JOB_TAGS=([\w,]*)'
         m = re.match(regex, job.command)
         if m:
@@ -54,14 +57,17 @@ class hcRegistry:
         return ""
 
     def find_by_hash(self, job):
+        """Find a job in the registry by hash"""
         h = self.get_hash(job)
         return next((elem for elem in self.data if elem['hash'] == h), False)
 
     def find_by_jobid(self, job):
+        """Find a job in the registry by job_id"""
         j = self.get_jobid(job)
         return next((elem for elem in self.data if elem['JOB_ID'] == j), False)
 
     def get_id(self, job):
+        """Get the HC id for the given cron job"""
         r = self.find_by_hash(job)
         if r:
             return r['HC_ID']
@@ -105,7 +111,9 @@ class hc:
                 code=registration['HC_ID']
                 )
         data = {
-                'schedule': '* * * * *',
+                'schedule': job.slices.render(),
+                'desc': job.comment,
+                'grace': 3600,
                 'tz': tzlocal.get_localzone().zone,
                 'tags': 'sch host_{} {}'.format(platform.node(), tags)
                 }
@@ -131,8 +139,16 @@ class hc:
     def print_status(self, status_filter=""):
         """Show status of monitored cron jobs"""
         checks = self.get_checks()
-        click.echo("Status Last ping       Check name")
-        click.echo("---------------------------------")
+        click.secho("{status:<6} {last_ping:<15} {name:<40}".format(
+            status="Status",
+            name="Name",
+            last_ping="Last ping"
+        ))
+        click.secho("{status:-<6} {last_ping:-<15} {name:-<40}".format(
+            status=   "",
+            name=     "",
+            last_ping=""
+        ))
 
         for i in checks:
             if status_filter and i['status'] != status_filter:
@@ -160,7 +176,7 @@ class hc:
                 last_ping = ''
 
             click.secho(
-                "{status:<6} {last_ping:<15} {name}".format(
+                    "{status:<6} {last_ping:<15} {name:<40}".format(
                     status=i['status'],
                     name=i['name'],
                     last_ping=last_ping
