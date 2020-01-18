@@ -1,11 +1,11 @@
 import sys
-import requests
 import click
 import arrow
 import json
 import hashlib
 import platform
 import re
+import requests
 import tzlocal
 
 
@@ -87,7 +87,7 @@ class hcRegistry:
 class hc:
     def __init__(self, cred):
         self.cred = cred
-        self.auth_headers = { 'X-Api-Key': self.cred.api_key }
+        self.auth_headers = {'X-Api-Key': self.cred.api_key}
 
     def get_checks(self):
         """Returns a list of checks from the HC API"""
@@ -103,7 +103,6 @@ class hc:
             return response.json()['checks']
 
         raise Exception('fetching cron checks failed')
-
 
     def update_check(self, registration, job, tags):
         url = "{apiurl}checks/{code}".format(
@@ -133,9 +132,6 @@ class hc:
 
         return True
 
-        print(response)
-
-
     def print_status(self, status_filter=""):
         """Show status of monitored cron jobs"""
         checks = self.get_checks()
@@ -145,8 +141,8 @@ class hc:
             last_ping="Last ping"
         ))
         click.secho("{status:-<6} {last_ping:-<15} {name:-<40}".format(
-            status=   "",
-            name=     "",
+            status="",
+            name="",
             last_ping=""
         ))
 
@@ -176,7 +172,7 @@ class hc:
                 last_ping = ''
 
             click.secho(
-                    "{status:<6} {last_ping:<15} {name:<40}".format(
+                "{status:<6} {last_ping:<15} {name:<40}".format(
                     status=i['status'],
                     name=i['name'],
                     last_ping=last_ping
