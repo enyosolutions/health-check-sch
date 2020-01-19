@@ -12,7 +12,7 @@ $ pip install .
 ## Test
 For now, create a file `test.py`
 ``` python
-from hc import hc, hcCred, hcRegistry
+from hc import hcCred, Healthchecks
 
 cred = hcCred('https://hc.example.com/api/v1/', 'mysecretapikey')
 h = Healthchecks(cred)
