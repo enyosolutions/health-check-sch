@@ -15,20 +15,17 @@ For now, create a file `test.py`
 from hc import hc, hcCred, hcRegistry
 
 cred = hcCred('https://hc.example.com/api/v1/', 'mysecretapikey')
-
-registry = hcRegistry(cred, 'doc/hcregistry.json')
-
-h = hc(cred)
-h.print_status()
+h = Healthchecks(cred)
+h.PrintStatus()
 
 # scan jobs that want to use SCH
 jobs = CronTabs().all.find_command('JOB_ID')
 for job in jobs:
-    print("job:")
-    print(job)
-    hc_id = registry.get_id(job)
-    print(hc_id)
-    print("--------------")
+    check = h.FindCheck(job)
+    if check:
+        h.UpdateCheck(check, job)
+    else:
+        h.NewCheck(job)
 ```
 
 And run it within the virtual environment

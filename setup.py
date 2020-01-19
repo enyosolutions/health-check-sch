@@ -9,5 +9,6 @@ setup(
         'click',
         'python-crontab',
         'requests',
+        'tzlocal',
     ],
 )
