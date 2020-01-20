@@ -1,11 +1,12 @@
 """
 module for interfacing a healthchecks.io compatible service
 """
-import sys
+import collections
 import hashlib
 import platform
 import re
-import collections
+import sys
+
 import arrow
 import click
 import requests
