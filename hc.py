@@ -12,7 +12,11 @@ import click
 import requests
 import tzlocal
 
-HealthcheckCredentials = collections.namedtuple('HealthcheckCredentials', 'api_url api_key')
+HealthcheckCredentials = collections.namedtuple(
+    'HealthcheckCredentials',
+    'api_url api_key'
+    )
+
 
 class Healthchecks:
     """
