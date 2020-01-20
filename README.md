@@ -12,20 +12,24 @@ $ pip install .
 ## Test
 For now, create a file `test.py`
 ``` python
-from hc import hcCred, Healthchecks
+from crontabs import CronTabs
+from hc import HealthcheckCredentials, Healthchecks
 
-cred = hcCred('https://hc.example.com/api/v1/', 'mysecretapikey')
+cred = HealthcheckCredentials(
+           api_url='https://hc.example.com/api/v1/',
+           api_key='mysecretapikey'
+        )
+
 h = Healthchecks(cred)
 h.PrintStatus()
 
-# scan jobs that want to use SCH
 jobs = CronTabs().all.find_command('JOB_ID')
 for job in jobs:
-    check = h.FindCheck(job)
+    check = h.find_check(job)
     if check:
-        h.UpdateCheck(check, job)
+        h.update_check(check, job)
     else:
-        h.NewCheck(job)
+        h.new_check(job)
 ```
 
 And run it within the virtual environment
