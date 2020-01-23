@@ -14,6 +14,12 @@ setup(
         'click',
         'python-crontab',
         'requests',
+        'configparser',
         'tzlocal',
     ],
+    entry_points='''
+        [console_scripts]
+        testmodule=testmodule:run
+        sch=sch:run
+        ''',
 )
