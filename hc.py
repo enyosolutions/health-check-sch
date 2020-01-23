@@ -3,8 +3,8 @@ module for interfacing a healthchecks.io compatible service
 """
 import collections
 import hashlib
-import platform
 import re
+import socket
 import sys
 
 import arrow
@@ -49,20 +49,20 @@ class Healthchecks:
         """
         job_id = self.get_job_id(job)
 
-        tag_for_job = 'job_id={job_id}'.format(job_id=job_id)
-        tag_for_host = 'host={hostname}'.format(hostname=platform.node())
+        tag_for_job_id = 'job_id={job_id}'.format(job_id=job_id)
+        tag_for_host = 'host={hostname}'.format(hostname=socket.getfqdn())
 
         # see if there's a check with tags matching both this host
         # and the job_id
         for check in self.checks:
-            found_job = False
+            found_job_id = False
             found_host = False
             for tag in check['tags'].split(' '):
-                if tag == tag_for_job:
-                    found_job = True
+                if tag == tag_for_job_id:
+                    found_job_id = True
                 elif tag == tag_for_host:
                     found_host = True
-            if found_job and found_host:
+            if found_job_id and found_host:
                 return check
 
         return None
@@ -96,7 +96,7 @@ class Healthchecks:
     def generate_job_hash(job):
         """Returns the unique hash for given cron job"""
         md5 = hashlib.md5()
-        md5.update(platform.node().encode('utf-8'))
+        md5.update(socket.getfqdn().encode('utf-8'))
         md5.update(str(job.slices).encode('utf-8'))
         md5.update(job.command.encode('utf-8'))
         return md5.hexdigest()
@@ -144,7 +144,7 @@ class Healthchecks:
             'tz': tzlocal.get_localzone().zone,
             'tags': 'sch host={host} job_id={job_id} '
                     'hash={hash} {tags}'.format(
-                        host=platform.node(),
+                        host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
                         hash=job_hash,
                         tags=self.get_job_tags(job)
@@ -175,7 +175,7 @@ class Healthchecks:
 
         # gather all the jobs' metadata
         data = {
-            'name': 'new check',
+            'name': self.get_job_id(job),
             'schedule': job.slices.render(),
             'desc': job.comment,
             'grace': 3600,
@@ -183,7 +183,7 @@ class Healthchecks:
             'tz': tzlocal.get_localzone().zone,
             'tags': 'sch host={host} job_id={job_id} '
                     'hash={hash} {tags}'.format(
-                        host=platform.node(),
+                        host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
                         hash=job_hash,
                         tags=self.get_job_tags(job)
@@ -202,10 +202,10 @@ class Healthchecks:
         except requests.exceptions.HTTPError as err:
             print("ERROR")
             print(err)
-            return False
+            return None
 
-        print('check created')
-        return True
+        # return check
+        return response.json()
 
     def print_status(self, status_filter=""):
         """Show status of monitored cron jobs"""
