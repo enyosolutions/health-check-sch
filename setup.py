@@ -1,14 +1,14 @@
 """
 Setup.py for Smart Cron Helper
 
-Use `pip install --editable .` to install the package.
+Use `pip install .` to install the package.
 """
 from setuptools import setup
 
 setup(
     name='SmartCronHelper',
     version='0.1',
-    py_modules=['hc'],
+    py_modules=['hc', 'sch'],
     install_requires=[
         'arrow',
         'click',
@@ -19,7 +19,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        testmodule=testmodule:run
         sch=sch:run
         ''',
 )
