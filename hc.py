@@ -67,6 +67,21 @@ class Healthchecks:
 
         return None
 
+    def ping(self, check, ping_type=''):
+        """
+        ping a healthchecks check
+
+        ping_type can be empty, '/start' or '/fail'
+        """
+        try:
+            response = requests.get(
+                check['ping_url'] + ping_type,
+                headers=self.auth_headers
+                )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(err)
+
     @staticmethod
     def get_job_tags(job):
         """
@@ -85,8 +100,16 @@ class Healthchecks:
         Returns the value of environment variable JOB_ID if specified
         in the cron job
         """
+        return Healthchecks.extract_job_id(job.command)
+
+    @staticmethod
+    def extract_job_id(command):
+        """
+        Returns the value of environment variable JOB_ID if specified
+        in the command
+        """
         regex = r".*JOB_ID=(\w*)"
-        match = re.match(regex, job.command)
+        match = re.match(regex, command)
         if match:
             return match.group(1)
 
