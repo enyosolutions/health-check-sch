@@ -42,12 +42,11 @@ makes sure to not change the `JOB_ID` (or it will create a new check).
  
 ### Other meta data
 The following data is used to configure a corresponding Healthchecks check:
-- `JOB_ID` env var: this is used for the name of the check and a tag named `job_id={value of JOB_ID}`
-- the cron lines' comment is used for the description of the check. The comment line just above a cron line or the inline comment is used.
-- `JOB_TAGS` env var: specify tag names separated by a comma to specify additional tags for the check.
+- `JOB_ID`: the environment variable is used for the name of the check and a tag named `job_id={value of JOB_ID}`
+- the cron lines' comment is used for the description of the check. The comment line just above a cron line or the inline comment is used
+- `JOB_TAGS`: use this environment variable in a job to specify tag names separated by a comma to specify additional tags
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
 - the jobs schedule and the hosts timezone is used to set the checks schedule
-
 
 ## Development environment
 ### Setup environment
