@@ -6,7 +6,7 @@ A cron shell wrapper for registering and updating cron jobs automatically in
 
 
 ## Installation
-Install the `sch` shell and it's dependancies by running pip in the cloned
+Install the `sch` shell and it's dependencies by running pip in the cloned
 repository:
 ``` console
 $ cd sch
@@ -17,11 +17,11 @@ Create a configuration file:
 ``` console
 sudo cp sch.conf.example /etc/sch.conf
 ```
-And fill in the api url and the key obtained from the Healthchecks project
+And fill in the API URL and the key obtained from the Healthchecks project
 settings block labeled "API Access".
 
 ### Monitoring cron jobs
-Just decorate your existing crontabs by specifying the alternative `sch`:
+Just decorate your existing cron tabs by specifying the alternative `sch`:
 ```
 SHELL=/usr/local/bin/sch
 ```
@@ -54,7 +54,7 @@ SHELL=/usr/local/bin/sch
 # if this check fails, the host is probably offline
 * * * * * root JOB_ID=true /bin/true
 ```
-Although above cron job is usefull, a more realistic could look like:
+Although above cron job is useful, a more realistic could look like:
 ```
 SHELL=/usr/loca/bin/sch
 # super important backup, if this one fails: fix with top priority!
@@ -77,11 +77,11 @@ $ pip install --editable .
 ```
 
 ### Testing
-Create a file named `sch.conf` and edit the Healthchecks api url and key:
+Create a file named `sch.conf` and edit the Healthchecks API URL and key:
 ``` console
 cp sch.conf.example sch.conf
 ```
-The config file looks like:
+The configuration file looks like:
 ``` console
  $ cat sch.conf.example 
 [hc]
