@@ -48,6 +48,13 @@ The following data is used to configure a corresponding Healthchecks check:
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
 - the jobs schedule and the hosts timezone is used to set the checks schedule
 
+### Job execution
+`sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
+For `sch` managed jobs:
+- `sch` will start with pinging `/start` endpoint of the check
+- os.sytem executes the command
+- depending on the exit code, it will ping for success or ping the `/fail` end point on failure
+
 ## Development environment
 ### Setup environment
 ``` console
@@ -80,8 +87,6 @@ Style Guide Enforcement:
 $ pip install flake8
 $ flake8 *py
 ```
-
-
 
 ### References
 * python-crontab <https://pypi.org/project/python-crontab/>
