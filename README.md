@@ -48,6 +48,19 @@ The following data is used to configure a corresponding Healthchecks check:
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
 - the jobs schedule and the hosts timezone is used to set the checks schedule
 
+An example of a cron file that touches most of the functionality would look like:
+```
+SHELL=/usr/local/bin/sch
+# if this check fails, the host is probably offline
+* * * * * root JOB_ID=true /bin/true
+```
+Although above cron job is usefull, a more realistic could look like:
+```
+SHELL=/usr/loca/bin/sch
+# super important backup, if this one fails: fix with top priority!
+10 8-20/2 * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project /usr/local/bin/run-db-backups
+``
+
 ### Job execution
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
 For `sch` managed jobs:
