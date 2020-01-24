@@ -1,5 +1,11 @@
-# bla bla
+# comment for false1
 1 0 * * * root JOB_ID=false1 /bin/false
-2 0 * * * root JOB_ID=false2 /bin/false
-3 0 * * * root JOB_ID=unknown /bin/false
+
+# comment for false2
+2 0 * * * root JOB_ID=false2 JOB_TAGS=false,just_testing /bin/false
+
+# comment for false3
+3 0 * * * root JOB_ID=false3 /bin/false # inline comment for false3
+
+# comment for false4
 4 0 * * * root /bin/false
