@@ -11,11 +11,22 @@ from crontabs import CronTabs
 from hc import HealthcheckCredentials, Healthchecks
 
 CONFIG = configparser.ConfigParser()
-CONFIG.read('sch.conf')
+
+try:
+    CONFIG.read(['sch.conf', '/etc/sch.conf'])
+
+    URL = CONFIG.get('hc', 'healthchecks_api_url')
+    KEY = CONFIG.get('hc', 'healthchecks_api_key')
+except configparser.Error:
+    sys.exit(
+        'ERROR: Could not find/read/parse config'
+        'file sch.conf or /etc/sch.conf'
+        )
+
 
 CRED = HealthcheckCredentials(
-    api_url=CONFIG.get('hc', 'healthchecks_api_url'),
-    api_key=CONFIG.get('hc', 'healthchecks_api_key')
+    api_url=URL,
+    api_key=KEY
     )
 
 
@@ -50,8 +61,7 @@ def run():
     """
     # we should have excactly two arguments
     if len(sys.argv) != 3:
-        print("Error: Expected two arguments")
-        sys.exit(1)
+        sys.exit("Error: Expected two arguments")
 
     # first argument should be '-c'
     if sys.argv[1] != '-c':
@@ -62,7 +72,6 @@ def run():
 
     # only handle the command when JOB_ID is in there
     if not Healthchecks.extract_job_id(command):
-        print("not to be registered in healthchecks, just execute the command")
         execute_shell_command(command)
         sys.exit()
 
