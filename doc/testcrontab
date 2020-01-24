@@ -1,23 +1,26 @@
-# comment for false1
-*/7    * * * * root JOB_ID=false1 sleep 1 && /bin/false
+SHELL=/usr/local/bin/sch
 
-# comment for false2
-1-59/7 * * * * root JOB_ID=false2 JOB_TAGS=false,just_testing sleep 2 && /bin/false
+# comment for false1
+*/7    * * * * root JOB_ID=false1 sleep 1 &&  /bin/false
 
 # comment for false3
-2-59/7 * * * * root JOB_ID=false3 sleep 3 && /bin/false # inline comment for false3
+1-59/7 * * * * root JOB_ID=false3 sleep 3 &&  /bin/false # inline comment for false3
 
-# comment for false4
-3-59/7 * * * * root /bin/false
+# comment for just true
+2-59/7 * * * * root /bin/true
 
 # comment for true1
-4-59/7 * * * * root JOB_ID=true1 sleep 1 && /bin/true
+3-59/7 * * * * root JOB_ID=true1 sleep 1 &&  /bin/true
 
 # comment for true2
-5-59/7 * * * * root JOB_ID=true2 JOB_TAGS=true,just_testing sleep 2 && /bin/true
+4-59/7 * * * * root JOB_ID=true2 JOB_TAGS=true,just_testing sleep 2 &&  /bin/true
+
+# comment for true5
+* * * * *      root JOB_ID=true5 JOB_TAGS=true,just_testing sleep 6 &&  /bin/true
+* * * * *      bram JOB_ID=bla JOB_TAGS=just_testing sleep 8 &&  /bin/true
 
 # comment for true3
-6-59/7 * * * * root JOB_ID=true3 sleep 3 && /bin/true
+5-59/7 * * * * root JOB_ID=true3 sleep 3 &&  /bin/true
 
-# comment for true4
-7-59/7 * * * * root /bin/true
+# ignored comment for job4
+6-59/7 * * * * root JOB_ID=job4 sleep 4 && grep joet /etc/hosts |  grep . # inline comment for job4

@@ -3,6 +3,7 @@ module for interfacing a healthchecks.io compatible service
 """
 import collections
 import hashlib
+import os
 import re
 import socket
 import sys
@@ -122,6 +123,7 @@ class Healthchecks:
         md5.update(socket.getfqdn().encode('utf-8'))
         md5.update(str(job.slices).encode('utf-8'))
         md5.update(job.command.encode('utf-8'))
+        md5.update(job.comment.encode('utf-8'))
         return md5.hexdigest()
 
     @staticmethod
@@ -154,21 +156,18 @@ class Healthchecks:
                 # hash did not change: no need to update checks' details
                 return True
 
-        # let's really update the check
-        print("about to update check:", check)
-
-        url = check['update_url']
-
+        print("updating check")
         # gather all the jobs' metadata
         data = {
             'schedule': job.slices.render(),
             'desc': job.comment,
             'grace': 3600,
             'tz': tzlocal.get_localzone().zone,
-            'tags': 'sch host={host} job_id={job_id} '
+            'tags': 'sch host={host} job_id={job_id} login={login} '
                     'hash={hash} {tags}'.format(
                         host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
+                        login=os.getlogin(),
                         hash=job_hash,
                         tags=self.get_job_tags(job)
                         )
@@ -177,7 +176,7 @@ class Healthchecks:
         # post the data
         try:
             response = requests.post(
-                url=url,
+                url=check['update_url'],
                 headers=self.auth_headers,
                 json=data
                 )
@@ -204,10 +203,11 @@ class Healthchecks:
             'grace': 3600,
             'channels': '*',  # all available notification channels
             'tz': tzlocal.get_localzone().zone,
-            'tags': 'sch host={host} job_id={job_id} '
+            'tags': 'sch host={host} job_id={job_id} login={login} '
                     'hash={hash} {tags}'.format(
                         host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
+                        login=os.getlogin(),
                         hash=job_hash,
                         tags=self.get_job_tags(job)
                         )
