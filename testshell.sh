@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # crude way to list cron commands in /etc/cron.d/test
-grep -v ^# /etc/cron.d/test | grep . | sed 's/^.* root //' |
+grep -v ^# /etc/cron.d/test | grep . | sed 's/^.* root //' | sed 's/\ \#.*//' |
 	while read line
 	do
 		

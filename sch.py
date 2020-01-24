@@ -69,6 +69,7 @@ def run():
     health_checks = Healthchecks(CRED)
 
     # find system cron job that executes this command
+    check = None
     jobs = CronTabs().all.find_command(command)
     for job in jobs:
         check = health_checks.find_check(job)
@@ -77,6 +78,9 @@ def run():
         else:
             print("creating new check")
             check = health_checks.new_check(job)
+
+    if not check:
+        sys.exit("Error: could not find or register check for given command")
 
     # execute command
 
