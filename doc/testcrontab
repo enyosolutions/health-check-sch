@@ -17,7 +17,7 @@ SHELL=/usr/local/bin/sch
 
 # comment for true5
 * * * * *      root JOB_ID=true5 JOB_TAGS=true,just_testing sleep 6 &&  /bin/true
-* * * * *      bram JOB_ID=bla JOB_TAGS=just_testing sleep 8 &&  /bin/true
+* * * * *      root JOB_ID=bla JOB_TAGS=just_testing sleep 8 &&  /bin/true
 
 # comment for true3
 5-59/7 * * * * root JOB_ID=true3 sleep 3 &&  /bin/true

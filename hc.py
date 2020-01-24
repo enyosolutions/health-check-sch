@@ -120,10 +120,19 @@ class Healthchecks:
     def generate_job_hash(job):
         """Returns the unique hash for given cron job"""
         md5 = hashlib.md5()
+        # host fqdn
         md5.update(socket.getfqdn().encode('utf-8'))
+        # job schedule
         md5.update(str(job.slices).encode('utf-8'))
+        # the timezone (not so likely to change)
+        md5.update(tzlocal.get_localzone().zone.encode('utf-8'))
+        # job user
+        md5.update(os.environ['LOGNAME'].encode('utf-8'))
+        # the command itself
         md5.update(job.command.encode('utf-8'))
+        # the comment
         md5.update(job.comment.encode('utf-8'))
+
         return md5.hexdigest()
 
     @staticmethod
@@ -163,11 +172,11 @@ class Healthchecks:
             'desc': job.comment,
             'grace': 3600,
             'tz': tzlocal.get_localzone().zone,
-            'tags': 'sch host={host} job_id={job_id} login={login} '
+            'tags': 'sch host={host} job_id={job_id} user={user} '
                     'hash={hash} {tags}'.format(
                         host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
-                        login=os.getlogin(),
+                        user=os.environ['LOGNAME'],
                         hash=job_hash,
                         tags=self.get_job_tags(job)
                         )
@@ -203,11 +212,11 @@ class Healthchecks:
             'grace': 3600,
             'channels': '*',  # all available notification channels
             'tz': tzlocal.get_localzone().zone,
-            'tags': 'sch host={host} job_id={job_id} login={login} '
+            'tags': 'sch host={host} job_id={job_id} user={user} '
                     'hash={hash} {tags}'.format(
                         host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
-                        login=os.getlogin(),
+                        user=os.environ['LOGNAME'],
                         hash=job_hash,
                         tags=self.get_job_tags(job)
                         )
