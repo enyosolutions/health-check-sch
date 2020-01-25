@@ -1,6 +1,6 @@
 # SmartCronHelper
 A cron shell wrapper for registering and updating cron jobs automatically in
-[healthchecks](https://healthchecks.io) or your own hosted copy of Healthchecks.
+[healthchecks](https://healthchecks.io) or your [own hosted copy of Healthchecks](https://github.com/healthchecks/healthchecks).
 
 > warning: this software package should be considered "alpha"
 
