@@ -24,3 +24,9 @@ SHELL=/usr/local/bin/sch
 
 # ignored comment for job4
 6-59/7 * * * * root JOB_ID=job4 sleep 4 && grep joet /etc/hosts |  grep . # inline comment for job4
+
+# test percent-signs
+* * * * * root JOB_ID=escape echo "time `date +\%H:\%M:\%S`" >> /tmp/timetest
+
+# test percent-signs
+* * * * * root echo "time `date +\%H:\%M:\%S`" >> /tmp/timetest
