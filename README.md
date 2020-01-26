@@ -47,6 +47,7 @@ The following data is used to configure a corresponding Healthchecks check:
 - `JOB_TAGS`: use this environment variable in a job to specify tag names separated by a comma to specify additional tags
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
 - the jobs schedule and the hosts timezone is used to set the checks schedule
+- when registering a new check, the execution time of the command is used to set an initial grace time. The grace time will be set to 1.2 times the execution time + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days.
 
 An example of a cron file that touches most of the functionality would look like:
 ```
