@@ -16,6 +16,7 @@ setup(
         'requests',
         'configparser',
         'tzlocal',
+        'ttictoc',
     ],
     entry_points='''
         [console_scripts]

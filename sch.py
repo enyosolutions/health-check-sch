@@ -7,6 +7,7 @@ import os
 import sys
 
 from crontabs import CronTabs
+from ttictoc import TicToc
 
 from hc import HealthcheckCredentials, Healthchecks
 
@@ -79,6 +80,7 @@ def run():
 
     # find system cron job that executes this command
     check = None
+    is_new_check = False
 
     # because of percent-sign escaping in cron, we need to
     # look for the escaped version of the command
@@ -91,6 +93,7 @@ def run():
             health_checks.update_check(check, job)
         else:
             print("creating new check")
+            is_new_check = True
             check = health_checks.new_check(job)
 
     if not check:
@@ -101,13 +104,19 @@ def run():
     # ping start
     health_checks.ping(check, '/start')
 
+    timer = TicToc()
+    timer.tic()
     exit_code = execute_shell_command(command)
+    timer.toc()
 
     # ping end
     if exit_code == 0:
         # ping success
         health_checks.ping(check)
 
+        if is_new_check:
+            grace_time = round(1.2 * timer.elapsed + 30)
+            health_checks.set_grace_time(check, grace_time)
     else:
         # ping failure
         health_checks.ping(check, '/fail')
