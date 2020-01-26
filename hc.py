@@ -239,6 +239,32 @@ class Healthchecks:
         # return check
         return response.json()
 
+    def set_grace_time(self, check, grace_time):
+        """
+        set the grace time for a check
+        """
+        # make sure the grace time respects the hc api
+        grace_time = max(60, grace_time)
+        grace_time = min(grace_time, 2592000)
+
+        data = {'grace': grace_time}
+
+        # post the data
+        try:
+            response = requests.post(
+                url=check['update_url'],
+                headers=self.auth_headers,
+                json=data
+                )
+
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print("ERROR")
+            print(err)
+            return False
+
+        return True
+
     def print_status(self, status_filter=""):
         """Show status of monitored cron jobs"""
         click.secho("{status:<6} {last_ping:<15} {name:<40}".format(
