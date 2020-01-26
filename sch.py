@@ -79,7 +79,12 @@ def run():
 
     # find system cron job that executes this command
     check = None
-    jobs = CronTabs().all.find_command(command)
+
+    # because of percent-sign escaping in cron, we need to
+    # look for the escaped version of the command
+    escaped_command = command.replace('%', r'\%')
+
+    jobs = CronTabs().all.find_command(escaped_command)
     for job in jobs:
         check = health_checks.find_check(job)
         if check:
