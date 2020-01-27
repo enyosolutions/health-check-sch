@@ -60,7 +60,7 @@ Although above cron job is useful, a more realistic could look like:
 SHELL=/usr/loca/bin/sch
 # super important backup, if this one fails: fix with top priority!
 10 8-20/2 * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project /usr/local/bin/run-db-backups
-``
+```
 
 ### Job execution
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
