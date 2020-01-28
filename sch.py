@@ -100,7 +100,6 @@ def run():
     if not check:
         sys.exit("Error: could not find or register check for given command")
 
-
     # ping start
     health_checks.ping(check, '/start')
 
