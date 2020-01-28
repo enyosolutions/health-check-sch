@@ -43,12 +43,12 @@ makes sure to not change the `JOB_ID` (or it will create a new check).
 ### Other meta data
 The following data is used to configure a corresponding Healthchecks check:
 - `JOB_ID`: the environment variable is used for the name of the check and a tag named `job_id={value of JOB_ID}`
-- the cron lines' comment is used for the description of the check. The comment line just above a cron line or the inline comment is used
+- the cron lines' **comment** is used for the description of the check. The comment line just above a cron line or the inline comment is used
 - `JOB_TAGS`: use this environment variable in a job to specify tag names separated by a comma to specify additional tags
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
-- the jobs schedule and the hosts timezone is used to set the checks schedule
+- the jobs **schedule** and the hosts **timezone** is used to set the checks schedule
 - `JOB_GRACE`: the value of this environment variable is used to set the grace time in seconds for the check. See JOB_GRACE for valid interval formats.
-- when registering a new check and JOB_GRACE is not set, the execution time of the command is used to set an initial grace time. The grace time will be set to 1.2 times the execution time + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days.
+- when registering a new check and JOB_GRACE is not set, the **execution time** of the command is used to set an initial grace time. The grace time will be set to 1.2 times the execution time + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days.
 
 An example of a cron file that touches most of the functionality would look like:
 ```
