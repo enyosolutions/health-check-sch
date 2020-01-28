@@ -182,7 +182,7 @@ class Healthchecks:
         # host fqdn
         md5.update(socket.getfqdn().encode('utf-8'))
         # job schedule
-        md5.update(str(job.slices).encode('utf-8'))
+        md5.update(Healthchecks.get_job_schedule(job).encode('utf-8'))
         # the timezone (not so likely to change)
         md5.update(tzlocal.get_localzone().zone.encode('utf-8'))
         # job user
@@ -228,7 +228,7 @@ class Healthchecks:
         # gather all the jobs' metadata
 
         data = {
-            'schedule': job.slices.render(),
+            'schedule': Healthchecks.get_job_schedule(job),
             'desc': job.comment,
             'tz': tzlocal.get_localzone().zone,
             'tags': 'sch host={host} job_id={job_id} user={user} '
@@ -262,6 +262,27 @@ class Healthchecks:
 
         return True
 
+    @staticmethod
+    def get_job_schedule(job):
+        """
+        extract the schedule in 5 column notation from the given job
+        """
+
+        # correct schedule aliases back to fields
+        schedule = job.slices.render()
+        if schedule == '@hourly':
+            schedule = '0 * * * *'
+        if schedule == '@daily':
+            schedule = '0 0 * * *'
+        if schedule == '@weekly':
+            schedule = '0 0 * * 0'
+        if schedule == '@monthly':
+            schedule = '0 0 1 * *'
+        if schedule == '@yearly':
+            schedule = '0 0 1 1 *'
+
+        return schedule
+
     def new_check(self, job):
         """
         creates a new check for given job
@@ -271,7 +292,7 @@ class Healthchecks:
         # gather all the jobs' metadata
         data = {
             'name': self.get_job_id(job),
-            'schedule': job.slices.render(),
+            'schedule': Healthchecks.get_job_schedule(job),
             'grace': 3600,
             'desc': job.comment,
             'channels': '*',  # all available notification channels
@@ -290,6 +311,8 @@ class Healthchecks:
         grace = Healthchecks.get_job_grace(job)
         if grace:
             data['grace'] = grace
+
+        print("data for new check", data)
 
         # post the data
         try:
