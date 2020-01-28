@@ -18,6 +18,15 @@ HealthcheckCredentials = collections.namedtuple(
     'api_url api_key'
     )
 
+INTERVAL_DICT = collections.OrderedDict([
+    ("Y", 365*86400),  # 1 year
+    ("M", 30*86400),   # 1 month
+    ("W", 7*86400),    # 1 week
+    ("D", 86400),      # 1 day
+    ("h", 3600),       # 1 hour
+    ("m", 60),         # 1 minute
+    ("s", 1)])         # 1 second
+
 
 class Healthchecks:
     """
@@ -84,15 +93,51 @@ class Healthchecks:
             print(err)
 
     @staticmethod
+    def human_to_seconds(string):
+        """Convert internal string like 1M, 1Y3M, 3W to seconds.
+
+        :type string: str
+        :param string: Interval string like 1M, 1W, 1M3W4h2s...
+            (s => seconds, m => minutes, h => hours, D => days,
+             W => weeks, M => months, Y => Years).
+
+        :rtype: int
+        :return: The conversion in seconds of string.
+        """
+        interval_exc = "Bad interval format for {0}".format(string)
+
+        interval_regex = re.compile(
+            "^(?P<value>[0-9]+)(?P<unit>[{0}])".format(
+                "".join(INTERVAL_DICT.keys())))
+
+        if string.isdigit():
+            seconds = int(string)
+            return seconds
+
+        seconds = 0
+
+        while string:
+            match = interval_regex.match(string)
+            if match:
+                value, unit = int(match.group("value")), match.group("unit")
+                if int(value) and unit in INTERVAL_DICT:
+                    seconds += value * INTERVAL_DICT[unit]
+                    string = string[match.end():]
+                else:
+                    raise Exception(interval_exc)
+            else:
+                raise Exception(interval_exc)
+        return seconds
+
+    @staticmethod
     def get_job_tags(job):
         """
         Returns the tags specified in the environment variable
         JOB_TAGS in the cron job
         """
-        regex = r'.*JOB_TAGS=([\w,]*)'
-        match = re.match(regex, job.command)
-        if match:
-            return match.group(1).replace(',', ' ')
+        tags = Healthchecks.extract_env_var(job.command, 'JOB_TAGS')
+        if tags:
+            return tags.replace(',', ' ')
         return ""
 
     @staticmethod
@@ -101,15 +146,29 @@ class Healthchecks:
         Returns the value of environment variable JOB_ID if specified
         in the cron job
         """
-        return Healthchecks.extract_job_id(job.command)
+        return Healthchecks.extract_env_var(job.command, 'JOB_ID')
 
     @staticmethod
-    def extract_job_id(command):
+    def get_job_grace(job):
+        """
+        Returns the value of environment variable JOB_ID if specified
+        in the cron job
+        """
+        grace_time = Healthchecks.extract_env_var(job.command, 'JOB_GRACE')
+        if grace_time:
+            grace_time = Healthchecks.human_to_seconds(grace_time)
+            grace_time = Healthchecks.coerce_grace_time(grace_time)
+            return grace_time
+
+        return None
+
+    @staticmethod
+    def extract_env_var(command, env_var):
         """
         Returns the value of environment variable JOB_ID if specified
         in the command
         """
-        regex = r".*JOB_ID=(\w*)"
+        regex = r".*{env_var}=([\w,]*)".format(env_var=env_var)
         match = re.match(regex, command)
         if match:
             return match.group(1)
@@ -167,20 +226,25 @@ class Healthchecks:
 
         print("updating check")
         # gather all the jobs' metadata
+
         data = {
             'schedule': job.slices.render(),
             'desc': job.comment,
-            'grace': 3600,
             'tz': tzlocal.get_localzone().zone,
             'tags': 'sch host={host} job_id={job_id} user={user} '
-                    'hash={hash} {tags}'.format(
+                    'hash={hash} {job_tags}'.format(
                         host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
                         user=os.environ['LOGNAME'],
                         hash=job_hash,
-                        tags=self.get_job_tags(job)
+                        job_tags=self.get_job_tags(job)
                         )
         }
+
+        # grace time
+        grace = Healthchecks.get_job_grace(job)
+        if grace:
+            data['grace'] = grace
 
         # post the data
         try:
@@ -208,19 +272,24 @@ class Healthchecks:
         data = {
             'name': self.get_job_id(job),
             'schedule': job.slices.render(),
-            'desc': job.comment,
             'grace': 3600,
+            'desc': job.comment,
             'channels': '*',  # all available notification channels
             'tz': tzlocal.get_localzone().zone,
             'tags': 'sch host={host} job_id={job_id} user={user} '
-                    'hash={hash} {tags}'.format(
+                    'hash={hash} {job_tags}'.format(
                         host=socket.getfqdn(),
                         job_id=self.get_job_id(job),
                         user=os.environ['LOGNAME'],
                         hash=job_hash,
-                        tags=self.get_job_tags(job)
+                        job_tags=self.get_job_tags(job)
                         )
         }
+
+        # grace time
+        grace = Healthchecks.get_job_grace(job)
+        if grace:
+            data['grace'] = grace
 
         # post the data
         try:
@@ -239,15 +308,23 @@ class Healthchecks:
         # return check
         return response.json()
 
-    def set_grace_time(self, check, grace_time):
+    @staticmethod
+    def coerce_grace_time(grace_time):
         """
-        set the grace time for a check
+        returns the adjusted grace_time so it is in spec with the grace time
+        expected by the Healthchecks API
         """
         # make sure the grace time respects the hc api
         grace_time = max(60, grace_time)
         grace_time = min(grace_time, 2592000)
 
-        data = {'grace': grace_time}
+        return grace_time
+
+    def set_grace_time(self, check, grace_time):
+        """
+        set the grace time for a check
+        """
+        data = {'grace': Healthchecks.coerce_grace_time(grace_time)}
 
         # post the data
         try:
