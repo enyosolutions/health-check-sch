@@ -60,7 +60,7 @@ Although above cron job is useful, a more realistic could look like:
 ```
 SHELL=/usr/loca/bin/sch
 # super important backup, if this one fails: fix with top priority!
-10 8-20/2 * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project /usr/local/bin/run-db-backups
+10 8-20/2 * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project JOB_GRACE=5m /usr/local/bin/run-db-backups
 ```
 
 #### JOB_GRACE interval format
@@ -78,6 +78,13 @@ You can make use of the following suffixes to specify an interval:
 | Y      | years    |
 
 Although days and weeks are accepted, you might want to limit the interval to several hours ;-)
+
+Examples:
+| environment variable | grace time |
+|----------------------|------------|
+| `JOB_GRACE=5m`       | 300s       |
+| `JOB_GRACE=120`      | 120s       |
+| `JOB_GRACE=1h30m`    | 5400s      |
 
 
 ### Job execution
