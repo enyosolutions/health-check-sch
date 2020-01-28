@@ -47,7 +47,8 @@ The following data is used to configure a corresponding Healthchecks check:
 - `JOB_TAGS`: use this environment variable in a job to specify tag names separated by a comma to specify additional tags
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
 - the jobs schedule and the hosts timezone is used to set the checks schedule
-- when registering a new check, the execution time of the command is used to set an initial grace time. The grace time will be set to 1.2 times the execution time + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days.
+- `JOB_GRACE`: the value of this environment variable is used to set the grace time in seconds for the check. See JOB_GRACE for valid interval formats.
+- when registering a new check and JOB_GRACE is not set, the execution time of the command is used to set an initial grace time. The grace time will be set to 1.2 times the execution time + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days.
 
 An example of a cron file that touches most of the functionality would look like:
 ```
@@ -61,6 +62,23 @@ SHELL=/usr/loca/bin/sch
 # super important backup, if this one fails: fix with top priority!
 10 8-20/2 * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project /usr/local/bin/run-db-backups
 ```
+
+#### JOB_GRACE interval format
+If no suffixes are used, seconds are assumed.
+You can make use of the following suffixes to specify an interval:
+
+| Suffix | Interval |
+|--------|----------|
+| s      | seconds  |
+| m      | minutes  |
+| h      | hours    |
+| D      | days     |
+| W      | weeks    |
+| M      | months   |
+| Y      | years    |
+
+Although days and weeks are accepted, you might want to limit the interval to several hours ;-)
+
 
 ### Job execution
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.

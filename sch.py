@@ -72,7 +72,7 @@ def run():
     command = sys.argv[2]
 
     # only handle the command when JOB_ID is in there
-    if not Healthchecks.extract_job_id(command):
+    if not Healthchecks.extract_env_var(command, 'JOB_ID'):
         execute_shell_command(command)
         sys.exit()
 
@@ -86,6 +86,7 @@ def run():
     # look for the escaped version of the command
     escaped_command = command.replace('%', r'\%')
 
+    job = None
     jobs = CronTabs().all.find_command(escaped_command)
     for job in jobs:
         check = health_checks.find_check(job)
@@ -99,14 +100,16 @@ def run():
     if not check:
         sys.exit("Error: could not find or register check for given command")
 
-    # execute command
 
     # ping start
     health_checks.ping(check, '/start')
 
     timer = TicToc()
     timer.tic()
+
+    # execute command
     exit_code = execute_shell_command(command)
+
     timer.toc()
 
     # ping end
@@ -114,9 +117,14 @@ def run():
         # ping success
         health_checks.ping(check)
 
-        if is_new_check:
-            grace_time = round(1.2 * timer.elapsed + 30)
-            health_checks.set_grace_time(check, grace_time)
+        # set grace time from measurement if the check is
+        # - new
+        # - there's no JOB_GRACE set in the job command
+        if is_new_check and not health_checks.get_job_grace(job):
+            health_checks.set_grace_time(
+                check,
+                round(1.2 * timer.elapsed + 30)
+                )
     else:
         # ping failure
         health_checks.ping(check, '/fail')
