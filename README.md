@@ -80,6 +80,7 @@ You can make use of the following suffixes to specify an interval:
 Although days and weeks are accepted, you might want to limit the interval to several hours ;-)
 
 Examples:
+
 | environment variable | grace time |
 |----------------------|------------|
 | `JOB_GRACE=5m`       | 300s       |
