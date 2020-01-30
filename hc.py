@@ -12,6 +12,7 @@ import arrow
 import click
 import requests
 import tzlocal
+from crontabs import CronTabs
 
 HealthcheckCredentials = collections.namedtuple(
     'HealthcheckCredentials',
@@ -28,72 +29,123 @@ INTERVAL_DICT = collections.OrderedDict([
     ("s", 1)])         # 1 second
 
 
-class Healthchecks:
+class Cron():
     """
-    Interfaces with e healthckecks.io compatible API to register
-    cron jobs found on the system.
+    Cron returns a list of system jobs based on a filter
     """
-    def __init__(self, cred):
-        self.cred = cred
-        self.auth_headers = {'X-Api-Key': self.cred.api_key}
-        self.checks = self.get_checks()
+    def __init__(self, command_filter=''):
+        self._jobs = []
 
-    def get_checks(self):
-        """Returns a list of checks from the HC API"""
-        url = "{}checks/".format(self.cred.api_url)
+        crontabs = CronTabs().all.find_command(command_filter)
+        for crontab in crontabs:
+            self._jobs.append(Job(crontab))
 
-        try:
-            response = requests.get(url, headers=self.auth_headers)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print(err)
-            sys.exit(1)
-        if response:
-            return response.json()['checks']
-
-        raise Exception('fetching cron checks failed')
-
-    def find_check(self, job):
+    def jobs(self):
         """
-        Find a check in Healthchecks for the host and given job
+        returns list of Jobs found on the system
         """
-        job_id = self.get_job_id(job)
+        return self._jobs
 
-        tag_for_job_id = 'job_id={job_id}'.format(job_id=job_id)
-        tag_for_host = 'host={hostname}'.format(hostname=socket.getfqdn())
 
-        # see if there's a check with tags matching both this host
-        # and the job_id
-        for check in self.checks:
-            found_job_id = False
-            found_host = False
-            for tag in check['tags'].split(' '):
-                if tag == tag_for_job_id:
-                    found_job_id = True
-                elif tag == tag_for_host:
-                    found_host = True
-            if found_job_id and found_host:
-                return check
+class Job():
+    """
+    Wrapper to create a self aware cron job object
+    """
+
+    def __init__(self, job):
+        # wrab the job
+        self._job = job
+
+        self.id = self._get_id()
+        self.command = self._job.command
+        self.comment = self._job.comment
+        self.tags = self._get_tags()
+        self.schedule = self._get_schedule()
+        self.grace = self._get_grace()
+        # finally, determine hash
+        self.hash = self._get_hash()
+
+    def _get_env_var(self, env_var):
+        """
+        Returns the value of environment variable JOB_ID if specified
+        in the command
+        """
+        regex = r".*{env_var}=([\w,]*)".format(env_var=env_var)
+        match = re.match(regex, self._job.command)
+        if match:
+            return match.group(1)
 
         return None
 
-    def ping(self, check, ping_type=''):
+    def _get_id(self):
         """
-        ping a healthchecks check
+        Returns the value of environment variable JOB_ID if specified
+        in the cron job
+        """
+        return self._get_env_var('JOB_ID')
 
-        ping_type can be empty, '/start' or '/fail'
+    def _get_tags(self):
         """
-        try:
-            response = requests.get(
-                check['ping_url'] + ping_type,
-                headers=self.auth_headers
-                )
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print(err)
+        Returns the tags specified in the environment variable
+        JOB_TAGS in the cron job
+        """
+        tags = self._get_env_var('JOB_TAGS')
+        if tags:
+            return tags.replace(',', ' ')
+        return ""
+
+    def _get_schedule(self):
+        """
+        extract the schedule in 5 column notation from the given job
+        """
+        # correct schedule aliases back to fields
+        schedule = self._job.slices.render()
+        if schedule == '@hourly':
+            schedule = '0 * * * *'
+        if schedule == '@daily':
+            schedule = '0 0 * * *'
+        if schedule == '@weekly':
+            schedule = '0 0 * * 0'
+        if schedule == '@monthly':
+            schedule = '0 0 1 * *'
+        if schedule == '@yearly':
+            schedule = '0 0 1 1 *'
+
+        return schedule
+
+    def _get_hash(self):
+        """Returns the unique hash for given cron job"""
+        md5 = hashlib.md5()
+
+        # job schedule
+        md5.update(self.schedule.encode('utf-8'))
+        # the command itself
+        md5.update(self.command.encode('utf-8'))
+        # the comment
+        md5.update(self.comment.encode('utf-8'))
+        # host fqdn
+        md5.update(socket.getfqdn().encode('utf-8'))
+        # job user
+        md5.update(os.environ['LOGNAME'].encode('utf-8'))
+        # the timezone (not so likely to change)
+        md5.update(tzlocal.get_localzone().zone.encode('utf-8'))
+
+        return md5.hexdigest()
+
+    def _get_grace(self):
+        """
+        Returns the jobs grace time in seconds as specified by the
+        commands' environment variable JOB_GRACE
+        """
+        grace = self._get_env_var('JOB_GRACE')
+        if grace:
+            grace = self._human_to_seconds(grace)
+            return grace
+
+        return None
 
     @staticmethod
-    def human_to_seconds(string):
+    def _human_to_seconds(string):
         """Convert internal string like 1M, 1Y3M, 3W to seconds.
 
         :type string: str
@@ -129,70 +181,68 @@ class Healthchecks:
                 raise Exception(interval_exc)
         return seconds
 
-    @staticmethod
-    def get_job_tags(job):
-        """
-        Returns the tags specified in the environment variable
-        JOB_TAGS in the cron job
-        """
-        tags = Healthchecks.extract_env_var(job.command, 'JOB_TAGS')
-        if tags:
-            return tags.replace(',', ' ')
-        return ""
 
-    @staticmethod
-    def get_job_id(job):
-        """
-        Returns the value of environment variable JOB_ID if specified
-        in the cron job
-        """
-        return Healthchecks.extract_env_var(job.command, 'JOB_ID')
+class Healthchecks:
+    """
+    Interfaces with e healthckecks.io compatible API to register
+    cron jobs found on the system.
+    """
+    def __init__(self, cred):
+        self.cred = cred
+        self.auth_headers = {'X-Api-Key': self.cred.api_key}
+        self.checks = self.get_checks()
 
-    @staticmethod
-    def get_job_grace(job):
+    def get_checks(self):
+        """Returns a list of checks from the HC API"""
+        url = "{}checks/".format(self.cred.api_url)
+
+        try:
+            response = requests.get(url, headers=self.auth_headers)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(err)
+            sys.exit(1)
+        if response:
+            return response.json()['checks']
+
+        raise Exception('fetching cron checks failed')
+
+    def find_check(self, job):
         """
-        Returns the value of environment variable JOB_ID if specified
-        in the cron job
+        Find a check in Healthchecks for the host and given job
         """
-        grace_time = Healthchecks.extract_env_var(job.command, 'JOB_GRACE')
-        if grace_time:
-            grace_time = Healthchecks.human_to_seconds(grace_time)
-            grace_time = Healthchecks.coerce_grace_time(grace_time)
-            return grace_time
+        tag_for_job_id = 'job_id={job_id}'.format(job_id=job.id)
+        tag_for_host = 'host={hostname}'.format(hostname=socket.getfqdn())
+
+        # see if there's a check with tags matching both this host
+        # and the job_id
+        for check in self.checks:
+            found_job_id = False
+            found_host = False
+            for tag in check['tags'].split(' '):
+                if tag == tag_for_job_id:
+                    found_job_id = True
+                elif tag == tag_for_host:
+                    found_host = True
+            if found_job_id and found_host:
+                return check
 
         return None
 
-    @staticmethod
-    def extract_env_var(command, env_var):
+    def ping(self, check, ping_type=''):
         """
-        Returns the value of environment variable JOB_ID if specified
-        in the command
+        ping a healthchecks check
+
+        ping_type can be empty, '/start' or '/fail'
         """
-        regex = r".*{env_var}=([\w,]*)".format(env_var=env_var)
-        match = re.match(regex, command)
-        if match:
-            return match.group(1)
-
-        return None
-
-    @staticmethod
-    def generate_job_hash(job):
-        """Returns the unique hash for given cron job"""
-        md5 = hashlib.md5()
-        # host fqdn
-        md5.update(socket.getfqdn().encode('utf-8'))
-        # job schedule
-        md5.update(Healthchecks.get_job_schedule(job).encode('utf-8'))
-        # the timezone (not so likely to change)
-        md5.update(tzlocal.get_localzone().zone.encode('utf-8'))
-        # job user
-        md5.update(os.environ['LOGNAME'].encode('utf-8'))
-        # the command itself
-        md5.update(job.command.encode('utf-8'))
-        # the comment
-        md5.update(job.comment.encode('utf-8'))
-
-        return md5.hexdigest()
+        try:
+            response = requests.get(
+                check['ping_url'] + ping_type,
+                headers=self.auth_headers
+                )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(err)
 
     @staticmethod
     def get_check_hash(check):
@@ -216,11 +266,10 @@ class Healthchecks:
         """
         update check metadata for given cron job
         """
-        job_hash = self.generate_job_hash(job)
         check_hash = self.get_check_hash(check)
 
         if check_hash:
-            if job_hash == check_hash:
+            if job.hash == check_hash:
                 # hash did not change: no need to update checks' details
                 return True
 
@@ -228,23 +277,22 @@ class Healthchecks:
         # gather all the jobs' metadata
 
         data = {
-            'schedule': Healthchecks.get_job_schedule(job),
+            'schedule': job.schedule,
             'desc': job.comment,
             'tz': tzlocal.get_localzone().zone,
             'tags': 'sch host={host} job_id={job_id} user={user} '
                     'hash={hash} {job_tags}'.format(
                         host=socket.getfqdn(),
-                        job_id=self.get_job_id(job),
+                        job_id=job.id,
                         user=os.environ['LOGNAME'],
-                        hash=job_hash,
-                        job_tags=self.get_job_tags(job)
+                        hash=job.hash,
+                        job_tags=job.tags
                         )
         }
 
         # grace time
-        grace = Healthchecks.get_job_grace(job)
-        if grace:
-            data['grace'] = grace
+        if job.grace:
+            data['grace'] = job.grace
 
         # post the data
         try:
@@ -262,37 +310,14 @@ class Healthchecks:
 
         return True
 
-    @staticmethod
-    def get_job_schedule(job):
-        """
-        extract the schedule in 5 column notation from the given job
-        """
-
-        # correct schedule aliases back to fields
-        schedule = job.slices.render()
-        if schedule == '@hourly':
-            schedule = '0 * * * *'
-        if schedule == '@daily':
-            schedule = '0 0 * * *'
-        if schedule == '@weekly':
-            schedule = '0 0 * * 0'
-        if schedule == '@monthly':
-            schedule = '0 0 1 * *'
-        if schedule == '@yearly':
-            schedule = '0 0 1 1 *'
-
-        return schedule
-
     def new_check(self, job):
         """
         creates a new check for given job
         """
-        job_hash = self.generate_job_hash(job)
-
         # gather all the jobs' metadata
         data = {
-            'name': self.get_job_id(job),
-            'schedule': Healthchecks.get_job_schedule(job),
+            'name': job.id,
+            'schedule': job.schedule,
             'grace': 3600,
             'desc': job.comment,
             'channels': '*',  # all available notification channels
@@ -300,17 +325,16 @@ class Healthchecks:
             'tags': 'sch host={host} job_id={job_id} user={user} '
                     'hash={hash} {job_tags}'.format(
                         host=socket.getfqdn(),
-                        job_id=self.get_job_id(job),
+                        job_id=job.id,
                         user=os.environ['LOGNAME'],
-                        hash=job_hash,
-                        job_tags=self.get_job_tags(job)
+                        hash=job.hash,
+                        job_tags=job.tags
                         )
         }
 
         # grace time
-        grace = Healthchecks.get_job_grace(job)
-        if grace:
-            data['grace'] = grace
+        if job.grace:
+            data['grace'] = self._coerce_grace(job.grace)
 
         print("data for new check", data)
 
@@ -332,22 +356,20 @@ class Healthchecks:
         return response.json()
 
     @staticmethod
-    def coerce_grace_time(grace_time):
+    def _coerce_grace(grace):
         """
-        returns the adjusted grace_time so it is in spec with the grace time
-        expected by the Healthchecks API
+        returns a grace time that respects the hc api
         """
-        # make sure the grace time respects the hc api
-        grace_time = max(60, grace_time)
-        grace_time = min(grace_time, 2592000)
+        grace = max(60, grace)
+        grace = min(grace, 2592000)
 
-        return grace_time
+        return grace
 
-    def set_grace_time(self, check, grace_time):
+    def set_grace(self, check, grace):
         """
         set the grace time for a check
         """
-        data = {'grace': Healthchecks.coerce_grace_time(grace_time)}
+        data = {'grace': self._coerce_grace(grace)}
 
         # post the data
         try:

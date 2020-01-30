@@ -6,10 +6,9 @@ import configparser
 import os
 import sys
 
-from crontabs import CronTabs
 from ttictoc import TicToc
 
-from hc import HealthcheckCredentials, Healthchecks
+from hc import HealthcheckCredentials, Healthchecks, Cron
 
 CONFIG = configparser.ConfigParser()
 
@@ -72,7 +71,7 @@ def run():
     command = sys.argv[2]
 
     # only handle the command when JOB_ID is in there
-    if not Healthchecks.extract_env_var(command, 'JOB_ID'):
+    if not command.count('JOB_ID='):
         execute_shell_command(command)
         sys.exit()
 
@@ -86,16 +85,22 @@ def run():
     # look for the escaped version of the command
     escaped_command = command.replace('%', r'\%')
 
-    job = None
-    jobs = CronTabs().all.find_command(escaped_command)
-    for job in jobs:
-        check = health_checks.find_check(job)
-        if check:
-            health_checks.update_check(check, job)
-        else:
-            print("creating new check")
-            is_new_check = True
-            check = health_checks.new_check(job)
+    jobs = Cron(escaped_command).jobs()
+
+    print(len(jobs))
+    if len(jobs) != 1:
+        # oops
+        sys.exit()
+
+    job = jobs[0]
+
+    check = health_checks.find_check(job)
+    if check:
+        health_checks.update_check(check, job)
+    else:
+        print("creating new check")
+        is_new_check = True
+        check = health_checks.new_check(job)
 
     if not check:
         sys.exit("Error: could not find or register check for given command")
@@ -119,8 +124,8 @@ def run():
         # set grace time from measurement if the check is
         # - new
         # - there's no JOB_GRACE set in the job command
-        if is_new_check and not health_checks.get_job_grace(job):
-            health_checks.set_grace_time(
+        if is_new_check and not job.get_grace():
+            health_checks.set_grace(
                 check,
                 round(1.2 * timer.elapsed + 30)
                 )
