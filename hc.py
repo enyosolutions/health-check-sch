@@ -77,7 +77,7 @@ class Job():
         Returns the value of environment variable JOB_ID if specified
         in the command
         """
-        regex = r".*{env_var}=([\w,]*)".format(env_var=env_var)
+        regex = r".*{env_var}=([\w,-]*)".format(env_var=env_var)
         match = re.match(regex, self._job.command)
         if match:
             return match.group(1)
