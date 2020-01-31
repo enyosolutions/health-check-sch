@@ -285,7 +285,7 @@ class Healthchecks:
                 return True
 
         logging.debug(
-            "Healthchecks(job.id=%s):Hash did change, "
+            "Healthchecks(job.id=%s):Hash changed: "
             "about to update the check",
             job.id
             )
