@@ -29,7 +29,8 @@ fi
 
 # crude way to list cron commands in /etc/cron.d/test
 grep -v ^# $cronfile |
-	grep -v SHELL |
+	grep -v ^SHELL |
+	grep -v ^MAILTO |
 	# get rid of empty lines
 	grep . |
 	# strip the schedule and user part
