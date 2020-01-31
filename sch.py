@@ -3,6 +3,7 @@ sch: Smart Cron Helper Shell
 """
 
 import configparser
+import logging
 import os
 import sys
 
@@ -28,6 +29,9 @@ CRED = HealthcheckCredentials(
     api_url=URL,
     api_key=KEY
     )
+
+FORMAT = '%(asctime)-15s %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 
 
 def execute_shell_command(command):
@@ -72,6 +76,11 @@ def run():
 
     # only handle the command when JOB_ID is in there
     if not command.count('JOB_ID='):
+        logging.debug(
+            "sch:running a job without a JOB_ID, so no "
+            "associated check, command: %s",
+            command
+            )
         execute_shell_command(command)
         sys.exit()
 
@@ -87,7 +96,6 @@ def run():
 
     jobs = Cron(escaped_command).jobs()
 
-    print(len(jobs))
     if len(jobs) != 1:
         # oops
         sys.exit()
@@ -96,14 +104,25 @@ def run():
 
     check = health_checks.find_check(job)
     if check:
+        logging.debug(
+            "sch(job.id=%s):found check for cron job",
+            job.id,
+            )
         health_checks.update_check(check, job)
     else:
-        print("creating new check")
+        logging.debug(
+            "sch(job.id=%s):found new cron job",
+            job.id,
+            )
         is_new_check = True
         check = health_checks.new_check(job)
 
     if not check:
-        sys.exit("Error: could not find or register check for given command")
+        logging.error(
+            "sch(job.id=%s):could not find or "
+            "register check for given command",
+            job.id,
+            )
 
     # ping start
     health_checks.ping(check, '/start')
@@ -112,9 +131,19 @@ def run():
     timer.tic()
 
     # execute command
+    logging.debug(
+        "sch(job.id=%s):About to run command: %s",
+        job.id,
+        command,
+        )
     exit_code = execute_shell_command(command)
 
     timer.toc()
+    logging.debug(
+        "sch(job.id=%s):command completed in %s seconds",
+        job.id,
+        timer.elapsed,
+        )
 
     # ping end
     if exit_code == 0:
@@ -124,12 +153,14 @@ def run():
         # set grace time from measurement if the check is
         # - new
         # - there's no JOB_GRACE set in the job command
-        if is_new_check and not job.get_grace():
-            health_checks.set_grace(
-                check,
-                round(1.2 * timer.elapsed + 30)
-                )
+        if is_new_check and not job.grace:
+            health_checks.set_grace(check, round(1.2 * timer.elapsed + 30))
     else:
+        logging.error(
+            "sch(job.id=%s):command returned with exit code %s",
+            job.id,
+            exit_code,
+            )
         # ping failure
         health_checks.ping(check, '/fail')
 

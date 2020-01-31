@@ -3,6 +3,7 @@ module for interfacing a healthchecks.io compatible service
 """
 import collections
 import hashlib
+import logging
 import os
 import re
 import socket
@@ -33,6 +34,8 @@ class Cron():
     """
     Cron returns a list of system jobs based on a filter
     """
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, command_filter=''):
         self._jobs = []
 
@@ -51,12 +54,16 @@ class Job():
     """
     Wrapper to create a self aware cron job object
     """
+    # pylint does not like the number of attributes and
+    # public methods, but i do ;-)
+
+    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-few-public-methods
 
     def __init__(self, job):
         # wrab the job
         self._job = job
-
-        self.id = self._get_id()
+        self.id = self._get_id()  # pylint: disable=invalid-name
         self.command = self._job.command
         self.comment = self._job.comment
         self.tags = self._get_tags()
@@ -233,7 +240,7 @@ class Healthchecks:
         """
         ping a healthchecks check
 
-        ping_type can be empty, '/start' or '/fail'
+        ping_type can be '', '/start' or '/fail'
         """
         try:
             response = requests.get(
@@ -271,11 +278,19 @@ class Healthchecks:
         if check_hash:
             if job.hash == check_hash:
                 # hash did not change: no need to update checks' details
+                logging.debug(
+                    "Healthchecks(job.id=%s):Hash did not change",
+                    job.id
+                    )
                 return True
 
-        print("updating check")
-        # gather all the jobs' metadata
+        logging.debug(
+            "Healthchecks(job.id=%s):Hash did change, "
+            "about to update the check",
+            job.id
+            )
 
+        # gather all the jobs' metadata
         data = {
             'schedule': job.schedule,
             'desc': job.comment,
@@ -303,17 +318,30 @@ class Healthchecks:
                 )
 
             response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print("ERROR")
-            print(err)
+        except requests.exceptions.HTTPError:
+            logging.error(
+                "Healthchecks(job.id=%s):An error occurred "
+                "while updating check",
+                job.id,
+                exc_info=True
+                )
             return False
 
+        logging.debug(
+            "Healthchecks(job.id=%s):Sucessfully updated check",
+            job.id
+            )
         return True
 
     def new_check(self, job):
         """
         creates a new check for given job
         """
+        logging.debug(
+            "Healthchecks(job.id=%s):Creating a new check",
+            job.id
+            )
+
         # gather all the jobs' metadata
         data = {
             'name': job.id,
@@ -336,8 +364,6 @@ class Healthchecks:
         if job.grace:
             data['grace'] = self._coerce_grace(job.grace)
 
-        print("data for new check", data)
-
         # post the data
         try:
             response = requests.post(
@@ -347,10 +373,19 @@ class Healthchecks:
                 )
 
             response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print("ERROR")
-            print(err)
+        except requests.exceptions.HTTPError:
+            logging.error(
+                "Healthchecks(job.id=%s):An error occurred "
+                "while creating a check",
+                job.id,
+                exc_info=True
+                )
             return None
+
+        logging.debug(
+            "Healthchecks(job.id=%s):successfully created a new check",
+            job.id
+            )
 
         # return check
         return response.json()
@@ -380,11 +415,14 @@ class Healthchecks:
                 )
 
             response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print("ERROR")
-            print(err)
+        except requests.exceptions.HTTPError:
+            logging.error(
+                "Healthchecks:An error occurred while updating the grace time",
+                exc_info=True
+                )
             return False
 
+        logging.debug("Healthchecks:Successfully set grace_time")
         return True
 
     def print_status(self, status_filter=""):
