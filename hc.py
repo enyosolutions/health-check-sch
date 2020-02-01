@@ -279,14 +279,14 @@ class Healthchecks:
             if job.hash == check_hash:
                 # hash did not change: no need to update checks' details
                 logging.debug(
-                    "Healthchecks(job.id=%s):Hash did not change",
+                    "Hash did not change (job.id=%s)",
                     job.id
                     )
                 return True
 
         logging.debug(
-            "Healthchecks(job.id=%s):Hash changed: "
-            "about to update the check",
+            "Hash changed: "
+            "about to update the check (job.id=%s)",
             job.id
             )
 
@@ -320,15 +320,14 @@ class Healthchecks:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             logging.error(
-                "Healthchecks(job.id=%s):An error occurred "
-                "while updating check",
+                "An error occurred while updating check (job.id=%s)",
                 job.id,
                 exc_info=True
                 )
             return False
 
         logging.debug(
-            "Healthchecks(job.id=%s):Sucessfully updated check",
+            "Sucessfully updated check (job.id=%s)",
             job.id
             )
         return True
@@ -338,7 +337,7 @@ class Healthchecks:
         creates a new check for given job
         """
         logging.debug(
-            "Healthchecks(job.id=%s):Creating a new check",
+            "Creating a new check (job.id=%s)",
             job.id
             )
 
@@ -375,15 +374,14 @@ class Healthchecks:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             logging.error(
-                "Healthchecks(job.id=%s):An error occurred "
-                "while creating a check",
+                "An error occurred while creating a check (job.id=%s)",
                 job.id,
                 exc_info=True
                 )
             return None
 
         logging.debug(
-            "Healthchecks(job.id=%s):successfully created a new check",
+            "Successfully created a new check (job.id=%s)",
             job.id
             )
 
@@ -417,12 +415,12 @@ class Healthchecks:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             logging.error(
-                "Healthchecks:An error occurred while updating the grace time",
+                "An error occurred while updating the grace time",
                 exc_info=True
                 )
             return False
 
-        logging.debug("Healthchecks:Successfully set grace_time")
+        logging.debug("Successfully set grace_time")
         return True
 
     def print_status(self, status_filter=""):

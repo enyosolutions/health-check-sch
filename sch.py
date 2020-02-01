@@ -4,6 +4,7 @@ sch: Smart Cron Helper Shell
 
 import configparser
 import logging
+import logging.handlers
 import os
 import sys
 
@@ -30,8 +31,16 @@ CRED = HealthcheckCredentials(
     api_key=KEY
     )
 
-FORMAT = '%(asctime)-15s %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+HANDLER = logging.handlers.SysLogHandler('/dev/log')
+FORMATTER = logging.Formatter(
+    '{name}/%(module)s.%(funcName)s: %(message)s'.format(name=__name__)
+    )
+HANDLER.setFormatter(FORMATTER)
+ROOT = logging.getLogger()
+ROOT.setLevel(logging.DEBUG)
+ROOT.addHandler(HANDLER)
+
+logging.info("starting")
 
 
 def execute_shell_command(command):
@@ -77,7 +86,7 @@ def run():
     # only handle the command when JOB_ID is in there
     if not command.count('JOB_ID='):
         logging.debug(
-            "sch:running a job without a JOB_ID, so no "
+            "running a job without a JOB_ID, so no "
             "associated check, command: %s",
             command
             )
@@ -105,13 +114,13 @@ def run():
     check = health_checks.find_check(job)
     if check:
         logging.debug(
-            "sch(job.id=%s):found check for cron job",
+            "found check for cron job (job.id=%s)",
             job.id,
             )
         health_checks.update_check(check, job)
     else:
         logging.debug(
-            "sch(job.id=%s):found new cron job",
+            "found new cron job (job.id=%s)",
             job.id,
             )
         is_new_check = True
@@ -119,8 +128,7 @@ def run():
 
     if not check:
         logging.error(
-            "sch(job.id=%s):could not find or "
-            "register check for given command",
+            "could not find or register check for given command (job.id=%s)",
             job.id,
             )
 
@@ -132,7 +140,7 @@ def run():
 
     # execute command
     logging.debug(
-        "sch(job.id=%s):About to run command: %s",
+        "About to run command: %s (job.id=%s)",
         job.id,
         command,
         )
@@ -140,7 +148,7 @@ def run():
 
     timer.toc()
     logging.debug(
-        "sch(job.id=%s):command completed in %s seconds",
+        "Command completed in %s seconds (job.id=%s)",
         job.id,
         timer.elapsed,
         )
@@ -157,7 +165,7 @@ def run():
             health_checks.set_grace(check, round(1.2 * timer.elapsed + 30))
     else:
         logging.error(
-            "sch(job.id=%s):command returned with exit code %s",
+            "Command returned with exit code %s (job.id=%s)",
             job.id,
             exit_code,
             )
