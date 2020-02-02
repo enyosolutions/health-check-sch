@@ -141,16 +141,16 @@ def run():
     # execute command
     logging.debug(
         "About to run command: %s (job.id=%s)",
-        job.id,
         command,
+        job.id,
         )
     exit_code = execute_shell_command(command)
 
     timer.toc()
     logging.debug(
         "Command completed in %s seconds (job.id=%s)",
-        job.id,
         timer.elapsed,
+        job.id,
         )
 
     # ping end
@@ -166,8 +166,8 @@ def run():
     else:
         logging.error(
             "Command returned with exit code %s (job.id=%s)",
-            job.id,
             exit_code,
+            job.id,
             )
         # ping failure
         health_checks.ping(check, '/fail')

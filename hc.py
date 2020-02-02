@@ -420,7 +420,7 @@ class Healthchecks:
                 )
             return False
 
-        logging.debug("Successfully set grace_time")
+        logging.debug("Successfully set grace_time to %s seconds", grace)
         return True
 
     def print_status(self, status_filter=""):
