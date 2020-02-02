@@ -41,7 +41,8 @@ class Cron():
 
         crontabs = CronTabs().all.find_command(command_filter)
         for crontab in crontabs:
-            self._jobs.append(Job(crontab))
+            if crontab.enabled:
+                self._jobs.append(Job(crontab))
 
     def jobs(self):
         """
