@@ -13,31 +13,14 @@ from ttictoc import TicToc
 
 from hc import Cron, HealthcheckCredentials, Healthchecks
 
-CONFIG = configparser.ConfigParser()
-
-try:
-    CONFIG.read(['sch.conf', '/etc/sch.conf'])
-
-    URL = CONFIG.get('hc', 'healthchecks_api_url')
-    KEY = CONFIG.get('hc', 'healthchecks_api_key')
-except configparser.Error:
-    sys.exit(
-        'ERROR: Could not find/read/parse config'
-        'file sch.conf or /etc/sch.conf'
-        )
-
-
-CRED = HealthcheckCredentials(
-    api_url=URL,
-    api_key=KEY
-    )
-
 HANDLER = logging.handlers.SysLogHandler('/dev/log')
 FORMATTER = logging.Formatter(
-    '{name}/%(module)s.%(funcName)s: %(message)s'.format(name=__name__)
+    '{name}/%(module)s.%(funcName)s:'
+    '%(levelname)s %(message)s'.format(name=__name__)
     )
 HANDLER.setFormatter(FORMATTER)
 ROOT = logging.getLogger()
+# log level DEBUG
 ROOT.setLevel(logging.DEBUG)
 ROOT.addHandler(HANDLER)
 
@@ -56,6 +39,22 @@ def execute_shell_command(command):
     return exit_code
 
 
+def get_job_id(command):
+    """
+    returns the value of the JOB_ID environment variable in specified
+    command string
+    returns None if not found
+    """
+    regex = r".*JOB_ID=([\w,-]*)"
+    match = re.match(regex, command)
+    if match:
+        return match.group(1)
+
+    logging.debug("Could not find JOB_ID in command %s", command)
+
+    return None
+
+
 def run():
     """
     sch:run is a cron shell that registers, updates and pings cron jobs in
@@ -70,84 +69,114 @@ def run():
 
     If you want to set additional tags for your check, you should do that with
     an environment variable JOB_TAGS. Seperate multiple tags with a comma.
-
-
     """
+    # pylint:disable=too-many-statements
+
     # we should have excactly two arguments
     if len(sys.argv) != 3:
         # cron runs sch with two arguments
+        logging.error("Expected two arguments")
         sys.exit("Error: Expected two arguments")
 
     # first argument should be '-c'
     if sys.argv[1] != '-c':
         # cron runs the shell with the -c flag
+        logging.error("The first argument should be '-c'")
         sys.exit("Error: the first argument should be '-c'")
 
     # cron command (including env variable JOB_ID) is the 2nd argument
     command = sys.argv[2]
+    job_id = get_job_id(command)
 
-    # determine JOB_ID
-    regex = r".*JOB_ID=([\w,-]*)"
-    match = re.match(regex, command)
-    if not match:
+    # find system cron job that executes this command
+    job = Cron(job_id).job()
+
+    # try loading Healthchecks API url and key
+    try:
+        config = configparser.ConfigParser()
+        config.read(['sch.conf', '/etc/sch.conf'])
+
+        url = config.get('hc', 'healthchecks_api_url')
+        key = config.get('hc', 'healthchecks_api_key')
+
+        cred = HealthcheckCredentials(
+            api_url=url,
+            api_key=key
+        )
+        try_hc = True
+
+    except configparser.Error:
+        logging.error(
+            'Could not find/read/parse config'
+            'file sch.conf or /etc/sch.conf'
+            )
+        try_hc = False
+
+    if try_hc:
+        # we do have the API url/key from the configuration
+        # lets try to communicate with Healthchecks
+        # pylint:disable=broad-except
+        try:
+            health_checks = Healthchecks(cred)
+        except Exception:
+            logging.error('Could not connect to Healthchecks')
+            try_hc = False
+        # pylint:enable=broad-except
+
+    if not job_id or not try_hc or not job:
+        # for some reason, we can't do much with Healthchecks
+        # at this point. So, we run the job without too much SCH
+        # interference
         logging.debug(
-            "running a job without a JOB_ID, so no "
-            "associated check, command: %s",
+            "Running a job without SCH interference, command: %s",
             command
             )
         execute_shell_command(command)
         sys.exit()
 
-    # find system cron job that executes this command
-    job_id = match.group(1)
-    jobs = Cron(job_id).jobs()
+    # at this point, we're setup to do some smart stuff ;-)
+    # we know the exact cron configration for the job
+    # and we already communicated successfully with the
+    # configured Healthchecks instance
 
-    if len(jobs) != 1:
-        # oops
-        sys.exit()
-
-    job = jobs[0]
-
-    check = None
-    is_new_check = False
-
-    health_checks = Healthchecks(CRED)
     check = health_checks.find_check(job)
+
     if check:
         logging.debug(
             "found check for cron job (job.id=%s)",
             job.id,
             )
+        is_new_check = False
         health_checks.update_check(check, job)
     else:
         logging.debug(
-            "found new cron job (job.id=%s)",
+            "no check found for cron job (job.id=%s)",
             job.id,
             )
         is_new_check = True
         check = health_checks.new_check(job)
 
-    if not check:
-        logging.error(
-            "could not find or register check for given command (job.id=%s)",
-            job.id,
-            )
+        if not check:
+            logging.error(
+                "Could not find or register check for given command. "
+                "Using read-only API keys? (job.id=%s)",
+                job.id,
+                )
 
     # ping start
     health_checks.ping(check, '/start')
 
     timer = TicToc()
     timer.tic()
-
     # execute command
     logging.debug(
-        "About to run command: %s (job.id=%s)",
+        "Executing shell commmand: %s (job.id=%s)",
         command,
         job.id,
         )
     exit_code = execute_shell_command(command)
-
     timer.toc()
+
     logging.debug(
         "Command completed in %s seconds (job.id=%s)",
         timer.elapsed,

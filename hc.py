@@ -32,12 +32,13 @@ INTERVAL_DICT = collections.OrderedDict([
 
 class Cron():
     """
-    Cron returns a list of system jobs based on a filter
+    Cron searches for cron jobs with the environment variable
+    "JOB_ID={job_id}" for given job_id
     """
     # pylint: disable=too-few-public-methods
-
-    def __init__(self, job_id=''):
+    def __init__(self, job_id):
         self._jobs = []
+        self._job_id = job_id
 
         command_filter = "JOB_ID={} ".format(job_id)
         crontabs = CronTabs().all.find_command(command_filter)
@@ -45,11 +46,26 @@ class Cron():
             if crontab.enabled:
                 self._jobs.append(Job(crontab))
 
-    def jobs(self):
+    def job(self):
         """
-        returns list of Jobs found on the system
+        returns the matching cron job
+        or None if there are no or multiple matches or
+        if given job_id was None to start with
         """
-        return self._jobs
+
+        if not self._job_id:
+            return None
+
+        if len(self._jobs) == 1:
+            return self._jobs[0]
+
+        logging.error(
+            'found %s matching cron jobs for given job id'
+            '. 1 expected (job.id=%s)',
+            len(self._jobs),
+            self._job_id
+            )
+        return None
 
 
 class Job():
