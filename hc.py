@@ -36,9 +36,10 @@ class Cron():
     """
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, command_filter=''):
+    def __init__(self, job_id=''):
         self._jobs = []
 
+        command_filter = "JOB_ID={} ".format(job_id)
         crontabs = CronTabs().all.find_command(command_filter)
         for crontab in crontabs:
             if crontab.enabled:

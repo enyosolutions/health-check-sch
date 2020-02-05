@@ -6,11 +6,12 @@ import configparser
 import logging
 import logging.handlers
 import os
+import re
 import sys
 
 from ttictoc import TicToc
 
-from hc import HealthcheckCredentials, Healthchecks, Cron
+from hc import Cron, HealthcheckCredentials, Healthchecks
 
 CONFIG = configparser.ConfigParser()
 
@@ -40,7 +41,7 @@ ROOT = logging.getLogger()
 ROOT.setLevel(logging.DEBUG)
 ROOT.addHandler(HANDLER)
 
-logging.info("starting")
+logging.info("started with arguments %s", sys.argv)
 
 
 def execute_shell_command(command):
@@ -74,17 +75,21 @@ def run():
     """
     # we should have excactly two arguments
     if len(sys.argv) != 3:
+        # cron runs sch with two arguments
         sys.exit("Error: Expected two arguments")
 
     # first argument should be '-c'
     if sys.argv[1] != '-c':
+        # cron runs the shell with the -c flag
         sys.exit("Error: the first argument should be '-c'")
 
     # cron command (including env variable JOB_ID) is the 2nd argument
     command = sys.argv[2]
 
-    # only handle the command when JOB_ID is in there
-    if not command.count('JOB_ID='):
+    # determine JOB_ID
+    regex = r".*JOB_ID=([\w,-]*)"
+    match = re.match(regex, command)
+    if not match:
         logging.debug(
             "running a job without a JOB_ID, so no "
             "associated check, command: %s",
@@ -93,17 +98,9 @@ def run():
         execute_shell_command(command)
         sys.exit()
 
-    health_checks = Healthchecks(CRED)
-
     # find system cron job that executes this command
-    check = None
-    is_new_check = False
-
-    # because of percent-sign escaping in cron, we need to
-    # look for the escaped version of the command
-    escaped_command = command.replace('%', r'\%')
-
-    jobs = Cron(escaped_command).jobs()
+    job_id = match.group(1)
+    jobs = Cron(job_id).jobs()
 
     if len(jobs) != 1:
         # oops
@@ -111,6 +108,10 @@ def run():
 
     job = jobs[0]
 
+    check = None
+    is_new_check = False
+
+    health_checks = Healthchecks(CRED)
     check = health_checks.find_check(job)
     if check:
         logging.debug(
