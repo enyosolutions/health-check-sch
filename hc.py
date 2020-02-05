@@ -75,8 +75,7 @@ class Job():
 
     def _get_env_var(self, env_var):
         """
-        Returns the value of environment variable JOB_ID if specified
-        in the command
+        Returns the value of an environment variable
         """
         regex = r".*{env_var}=([\w,-]*)".format(env_var=env_var)
         match = re.match(regex, self._job.command)
