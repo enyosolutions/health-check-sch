@@ -1,32 +1,7 @@
 SHELL=/usr/local/bin/sch
 
-# comment for false1
-*/7    * * * * root JOB_ID=false1 sleep 1 &&  /bin/false
+# comment for true
+* * * * *      root JOB_ID=true JOB_TAGS=true,just_testing sleep 6 &&  /bin/true
+* * * * *      root JOB_ID=bla JOB_TAGS=just_testing sleep 8 &&  /bin/true # inline comment
 
-# comment for false3
-1-59/7 * * * * root JOB_ID=false3 sleep 3 &&  /bin/false # inline comment for false3
 
-# comment for just true
-2-59/7 * * * * root /bin/true
-
-# comment for true1
-3-59/7 * * * * root JOB_ID=true1 JOB_GRACE=1h20m sleep 1 &&  /bin/true
-
-# comment for true2
-4-59/7 * * * * root JOB_ID=true2 JOB_TAGS=true,just_testing sleep 2 &&  /bin/true
-
-# comment for true5
-* * * * *      root JOB_ID=true5 JOB_TAGS=true,just_testing sleep 6 &&  /bin/true
-* * * * *      root JOB_ID=bla JOB_TAGS=just_testing sleep 8 &&  /bin/true
-
-# comment for true3
-5-59/7 * * * * root JOB_ID=true3 sleep 3 &&  /bin/true
-
-# ignored comment for job4
-6-59/7 * * * * root JOB_ID=job4 sleep 4 && grep joet /etc/hosts |  grep . > /dev/null # inline comment for job4
-
-# test percent-signs
-* * * * * root JOB_ID=escape echo "time `date +\%H:\%M:\%S`" >> /tmp/timetest
-
-# test percent-signs
-* * * * * root echo "time `date +\%H:\%M:\%S`" >> /tmp/timetest
