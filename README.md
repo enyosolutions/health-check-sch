@@ -131,3 +131,28 @@ $ flake8 *py
 ### References
 * python-crontab <https://pypi.org/project/python-crontab/>
 * crab <https://github.com/grahambell/crab>
+
+## Notes
+### fully qualified domain name
+`sch` uses the FQDN to identify the hosts it's running on. You can check the FQDN with:
+``` console
+$ hostname --fqdn
+host.example.com
+```
+
+However, on some systems that don't know the domain part, it just returns the
+(short) hostname instead:
+``` console
+$ hostname --fqdn
+host
+```
+
+If this is the case, you can fix that by editing the `/etc/hosts` file so look
+like this:
+```
+127.0.0.1	localhost
+127.0.1.1	host.example.com host
+```
+
+Afterwards `hostname --fqdn` should return the FQDN. Beware that `sch` will
+create new checks when the FQDN changes.
