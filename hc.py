@@ -4,6 +4,7 @@ module for interfacing a healthchecks.io compatible service
 import collections
 import hashlib
 import logging
+import json
 import os
 import re
 import socket
@@ -331,7 +332,7 @@ class Healthchecks:
             response = requests.post(
                 url=check['update_url'],
                 headers=self.auth_headers,
-                json=data
+                data=json.dumps(data)
                 )
 
             response.raise_for_status()
