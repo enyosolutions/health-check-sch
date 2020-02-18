@@ -54,6 +54,7 @@ def get_job_id(command):
 
     return None
 
+
 def run():
     """
     sch:run is a cron shell that registers, updates and pings cron jobs in
