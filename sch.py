@@ -70,6 +70,7 @@ def run():
     an environment variable JOB_TAGS. Seperate multiple tags with a comma.
     """
     # pylint:disable=too-many-statements
+    # pylint:disable=too-many-branches
 
     # we should have excactly two arguments
     if len(sys.argv) != 3:
@@ -111,7 +112,46 @@ def run():
 
     health_checks = Healthchecks(cred)
 
-    if not job_id or not job:
+    check = None
+    interfere = False
+    # pylint:disable=broad-except
+    try:
+        check = health_checks.find_check(job)
+    except Exception:
+        # do not update or create checks because of communication problems
+        logging.error('Ooops! Could not communicate with the healthchecks API')
+        interfere = False
+    else:
+        if check:
+            # existing check found
+            logging.debug(
+                "found check for cron job (job.id=%s)",
+                job.id,
+                )
+            is_new_check = False
+            health_checks.update_check(check, job)
+            interfere = True
+        else:
+            # new check to be created
+            logging.debug(
+                "no check found for cron job (job.id=%s)",
+                job.id,
+                )
+            is_new_check = True
+            check = health_checks.new_check(job)
+
+            if check:
+                interfere = True
+            else:
+                logging.error(
+                    "Could not find or register check for given command. "
+                    "Using read-only API keys? (job.id=%s)",
+                    job.id,
+                    )
+
+    # pylint:enable=broad-except
+
+    if not interfere or not job_id or not job:
         # for some reason, we can't do much with Healthchecks
         # at this point. So, we run the job without too much SCH
         # interference
@@ -124,42 +164,15 @@ def run():
 
     # at this point, we're setup to do some smart stuff ;-)
     # we know the exact cron configration for the job
-    # we might run into communication problems with hc
-    check = None
-    try:
-        check = health_checks.find_check(job)
-    except Exception:
-        # do not update or create checks because of communication problems
-        logging.error('Ooops! Could not communicate with the healthchecks API')
-    else:
-        if check:
-            logging.debug(
-                "found check for cron job (job.id=%s)",
-                job.id,
-                )
-            is_new_check = False
-            health_checks.update_check(check, job)
-        else:
-            logging.debug(
-                "no check found for cron job (job.id=%s)",
-                job.id,
-                )
-            is_new_check = True
-            check = health_checks.new_check(job)
-
-            if not check:
-                logging.error(
-                    "Could not find or register check for given command. "
-                    "Using read-only API keys? (job.id=%s)",
-                    job.id,
-                    )
+    # and are able to communicate with healthchecks
 
     # ping start
-    if check:
-        health_checks.ping(check, '/start')
+    health_checks.ping(check, '/start')
 
+    # start timer
     timer = TicToc()
     timer.tic()
+
     # execute command
     logging.debug(
         "Executing shell commmand: %s (job.id=%s)",
@@ -167,6 +180,8 @@ def run():
         job.id,
         )
     exit_code = execute_shell_command(command)
+
+    # stop timer
     timer.toc()
 
     logging.debug(
@@ -175,25 +190,24 @@ def run():
         job.id,
         )
 
-    if check:
-        # ping end
-        if exit_code == 0:
-            # ping success
-            health_checks.ping(check)
+    # ping end
+    if exit_code == 0:
+        # ping success
+        health_checks.ping(check)
 
-            # set grace time from measurement if the check is
-            # - new
-            # - there's no JOB_GRACE set in the job command
-            if is_new_check and not job.grace:
-                health_checks.set_grace(check, round(1.2 * timer.elapsed + 30))
-        else:
-            logging.error(
-                "Command returned with exit code %s (job.id=%s)",
-                exit_code,
-                job.id,
-                )
-            # ping failure
-            health_checks.ping(check, '/fail')
+        # set grace time from measurement if the check is
+        # - new
+        # - there's no JOB_GRACE set in the job command
+        if is_new_check and not job.grace:
+            health_checks.set_grace(check, round(1.2 * timer.elapsed + 30))
+    else:
+        logging.error(
+            "Command returned with exit code %s (job.id=%s)",
+            exit_code,
+            job.id,
+            )
+        # ping failure
+        health_checks.ping(check, '/fail')
 
 
 if __name__ == "__main__":
