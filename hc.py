@@ -8,7 +8,7 @@ import json
 import os
 import re
 import socket
-import sys
+from urllib.parse import quote_plus
 
 import arrow
 import click
@@ -215,21 +215,25 @@ class Healthchecks:
     def __init__(self, cred):
         self.cred = cred
         self.auth_headers = {'X-Api-Key': self.cred.api_key}
-        self.checks = self.get_checks()
 
-    def get_checks(self):
+    def get_checks(self, query=''):
         """Returns a list of checks from the HC API"""
-        url = "{}checks/".format(self.cred.api_url)
+        url = "{api_url}checks/{query}".format(
+            api_url=self.cred.api_url,
+            query=query
+            )
 
         try:
             response = requests.get(url, headers=self.auth_headers)
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(err)
-            sys.exit(1)
+            logging.error("bad response %s", err)
+            return None
+
         if response:
             return response.json()['checks']
 
+        logging.error('fetching cron checks failed')
         raise Exception('fetching cron checks failed')
 
     def find_check(self, job):
@@ -239,19 +243,18 @@ class Healthchecks:
         tag_for_job_id = 'job_id={job_id}'.format(job_id=job.id)
         tag_for_host = 'host={hostname}'.format(hostname=socket.getfqdn())
 
-        # see if there's a check with tags matching both this host
-        # and the job_id
-        for check in self.checks:
-            found_job_id = False
-            found_host = False
-            for tag in check['tags'].split(' '):
-                if tag == tag_for_job_id:
-                    found_job_id = True
-                elif tag == tag_for_host:
-                    found_host = True
-            if found_job_id and found_host:
-                return check
+        query = "?&tag={tag1}&tag={tag2}".format(
+            tag1=quote_plus(tag_for_job_id),
+            tag2=quote_plus(tag_for_host)
+            )
 
+        checks = self.get_checks(query)
+
+        # we are only interrested if we found exactly one match
+        if checks and len(checks) == 1:
+            return checks[0]
+
+        # no result found
         return None
 
     def ping(self, check, ping_type=''):
@@ -267,7 +270,7 @@ class Healthchecks:
                 )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(err)
+            logging.error('could not ping, error: %s', err)
 
     @staticmethod
     def get_check_hash(check):
@@ -454,7 +457,9 @@ class Healthchecks:
             last_ping=""
         ))
 
-        for i in self.checks:
+        checks = self.get_checks()
+
+        for i in checks:
             if status_filter and i['status'] != status_filter:
                 continue
 

@@ -71,6 +71,7 @@ def run():
     an environment variable JOB_TAGS. Seperate multiple tags with a comma.
     """
     # pylint:disable=too-many-statements
+    # pylint:disable=too-many-branches
 
     # we should have excactly two arguments
     if len(sys.argv) != 3:
@@ -103,27 +104,55 @@ def run():
             api_url=url,
             api_key=key
         )
-        try_hc = True
 
     except configparser.Error:
         logging.error(
             'Could not find/read/parse config'
             'file sch.conf or /etc/sch.conf'
             )
-        try_hc = False
 
-    if try_hc:
-        # we do have the API url/key from the configuration
-        # lets try to communicate with Healthchecks
-        # pylint:disable=broad-except
-        try:
-            health_checks = Healthchecks(cred)
-        except Exception:
-            logging.error('Could not connect to Healthchecks')
-            try_hc = False
-        # pylint:enable=broad-except
+    health_checks = Healthchecks(cred)
 
-    if not job_id or not try_hc or not job:
+    check = None
+    interfere = False
+    # pylint:disable=broad-except
+    try:
+        check = health_checks.find_check(job)
+    except Exception:
+        # do not update or create checks because of communication problems
+        logging.error('Ooops! Could not communicate with the healthchecks API')
+        interfere = False
+    else:
+        if check:
+            # existing check found
+            logging.debug(
+                "found check for cron job (job.id=%s)",
+                job.id,
+                )
+            is_new_check = False
+            health_checks.update_check(check, job)
+            interfere = True
+        else:
+            # new check to be created
+            logging.debug(
+                "no check found for cron job (job.id=%s)",
+                job.id,
+                )
+            is_new_check = True
+            check = health_checks.new_check(job)
+
+            if check:
+                interfere = True
+            else:
+                logging.error(
+                    "Could not find or register check for given command. "
+                    "Using read-only API keys? (job.id=%s)",
+                    job.id,
+                    )
+
+    # pylint:enable=broad-except
+
+    if not interfere or not job_id or not job:
         # for some reason, we can't do much with Healthchecks
         # at this point. So, we run the job without too much SCH
         # interference
@@ -136,38 +165,15 @@ def run():
 
     # at this point, we're setup to do some smart stuff ;-)
     # we know the exact cron configration for the job
-    # and we already communicated successfully with the
-    # configured Healthchecks instance
-
-    check = health_checks.find_check(job)
-
-    if check:
-        logging.debug(
-            "found check for cron job (job.id=%s)",
-            job.id,
-            )
-        is_new_check = False
-        health_checks.update_check(check, job)
-    else:
-        logging.debug(
-            "no check found for cron job (job.id=%s)",
-            job.id,
-            )
-        is_new_check = True
-        check = health_checks.new_check(job)
-
-        if not check:
-            logging.error(
-                "Could not find or register check for given command. "
-                "Using read-only API keys? (job.id=%s)",
-                job.id,
-                )
+    # and are able to communicate with healthchecks
 
     # ping start
     health_checks.ping(check, '/start')
 
+    # start timer
     timer = TicToc()
     timer.tic()
+
     # execute command
     logging.debug(
         "Executing shell commmand: %s (job.id=%s)",
@@ -175,6 +181,8 @@ def run():
         job.id,
         )
     exit_code = execute_shell_command(command)
+
+    # stop timer
     timer.toc()
 
     logging.debug(
