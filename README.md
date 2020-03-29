@@ -154,5 +154,5 @@ like this:
 127.0.1.1	host.example.com host
 ```
 
-Afterwards `hostname --fqdn` should return the FQDN. Beware that `sch` will
+Afterwards, `hostname --fqdn` should return the FQDN. Beware that `sch` will
 create new checks when the FQDN changes.
