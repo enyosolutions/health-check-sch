@@ -11,7 +11,7 @@ import sys
 
 from ttictoc import TicToc
 
-from hc import Cron, HealthcheckCredentials, Healthchecks
+from sch import Cron, HealthchecksCredentials, Healthchecks
 
 HANDLER = logging.handlers.SysLogHandler('/dev/log')
 FORMATTER = logging.Formatter(
@@ -55,7 +55,7 @@ def get_job_id(command):
     return None
 
 
-def run():
+def shell(command):
     """
     sch:run is a cron shell that registers, updates and pings cron jobs in
     healthchecks.io
@@ -73,24 +73,15 @@ def run():
     # pylint:disable=too-many-statements
     # pylint:disable=too-many-branches
 
-    # we should have excactly two arguments
-    if len(sys.argv) != 3:
-        # cron runs sch with two arguments
-        logging.error("Expected two arguments")
-        sys.exit("Error: Expected two arguments")
-
-    # first argument should be '-c'
-    if sys.argv[1] != '-c':
-        # cron runs the shell with the -c flag
-        logging.error("The first argument should be '-c'")
-        sys.exit("Error: the first argument should be '-c'")
-
     # cron command (including env variable JOB_ID) is the 2nd argument
-    command = sys.argv[2]
+    # command = sys.argv[2]
     job_id = get_job_id(command)
 
     # find system cron job that executes this command
-    job = Cron(job_id).job()
+    try:
+        job = Cron(job_id).job()
+    except TypeError:
+        logging.error("Could not find matching cron job")
 
     # try loading Healthchecks API url and key
     try:
@@ -100,18 +91,17 @@ def run():
         url = config.get('hc', 'healthchecks_api_url')
         key = config.get('hc', 'healthchecks_api_key')
 
-        cred = HealthcheckCredentials(
+        cred = HealthchecksCredentials(
             api_url=url,
             api_key=key
         )
 
+        health_checks = Healthchecks(cred)
     except configparser.Error:
         logging.error(
             'Could not find/read/parse config'
             'file sch.conf or /etc/sch.conf'
             )
-
-    health_checks = Healthchecks(cred)
 
     check = None
     interfere = False
@@ -211,5 +201,5 @@ def run():
         health_checks.ping(check, '/fail')
 
 
-if __name__ == "__main__":
-    run()
+# if __name__ == "__main__":
+#    shell()
