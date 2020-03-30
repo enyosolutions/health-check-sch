@@ -11,10 +11,10 @@ stages:
 flake8:
   stage: Static Analysis
   script:
-  - flake8 --max-line-length=120 *.py
+  - flake8 --max-line-length=120 setup.py sch/*.py
 
 pylint:
   stage: Static Analysis
   allow_failure: true
   script:
-  - pylint -d C0301 *.py
+  - pylint -d C0301 setup.py sch/*.py

@@ -9,8 +9,7 @@ A cron shell wrapper for registering and updating cron jobs automatically in
 Install the `sch` shell and it's dependencies by running pip in the cloned
 repository:
 ``` console
-$ cd sch
-$ sudo pip install .
+$ pip install sch
 ```
 
 Create a configuration file:
