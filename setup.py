@@ -2,15 +2,15 @@
 
 """The setup script."""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open('README.md') as readme_file:
-    readme = readme_file.read()
+    README = readme_file.read()
 
 with open('HISTORY.md') as history_file:
-    history = history_file.read()
+    HISTORY = history_file.read()
 
-requirements = [
+REQUIREMENTS = [
     'arrow',
     'click>=7.0',
     'python-crontab',
@@ -20,9 +20,9 @@ requirements = [
     'ttictoc',
     ]
 
-setup_requirements = []
+SETUP_REQUIREMENTS = []
 
-test_requirements = []
+TEST_REQUIREMENTS = []
 
 setup(
     author="Bram Daams",
@@ -47,18 +47,18 @@ setup(
             'sch=sch.cli:main',
         ],
     },
-    install_requires=requirements,
+    install_requires=REQUIREMENTS,
     license="GNU General Public License v3",
-    long_description=readme + '\n\n' + history,
+    long_description=README + '\n\n' + HISTORY,
     long_description_content_type="text/markdown",
     include_package_data=True,
     keywords='sch',
     name='sch',
-    packages=find_packages(include=['sch', 'sch.*']),
-    setup_requires=setup_requirements,
+    packages=find_packages(),
+    setup_requires=SETUP_REQUIREMENTS,
     test_suite='tests',
-    tests_require=test_requirements,
+    tests_require=TEST_REQUIREMENTS,
     url='https://gitlab.science.ru.nl/bram/sch',
-    version='0.2.2',
+    version='0.2.3',
     zip_safe=False,
 )

@@ -1,9 +1,11 @@
 """
-SmartCronHellper - A shell wrapper for Healthchecks monitored cron jobs
+SmartCronHelper - A shell wrapper for Healthchecks monitored cron jobs
 """
 
 import sys
+
 import click
+
 from sch import sch
 
 
@@ -19,4 +21,4 @@ def main(command):
 
 
 if __name__ == "__main__":
-    sys.exit(main())  # pragma: no cover
+    sys.exit(main(''))  # pragma: no cover
