@@ -13,5 +13,6 @@
 - previous released packages where broken...
 
 ### release notes for 0.2.4
-- updated release notes
+- setting the user-agent string to 'sch/{version}' when interacting with the
+  Healthchecks API
 - got rid of outdated development section in the readme

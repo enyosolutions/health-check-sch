@@ -19,6 +19,7 @@ import requests
 import tzlocal
 from crontabs import CronTabs
 from ttictoc import TicToc
+from . import __version__
 
 HANDLER = logging.handlers.SysLogHandler('/dev/log')
 FORMATTER = logging.Formatter(
@@ -221,7 +222,10 @@ class Healthchecks:
     """
     def __init__(self, cred):
         self.cred = cred
-        self.auth_headers = {'X-Api-Key': self.cred.api_key}
+        self.auth_headers = {
+            'X-Api-Key': self.cred.api_key,
+            'User-Agent': 'sch/{version}'.format(version=__version__)
+            }
 
     def get_checks(self, query=''):
         """Returns a list of checks from the HC API"""
