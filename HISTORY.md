@@ -7,3 +7,11 @@
 ### release notes for 0.2.0
 - changed file structure
 - first release on PyPI.
+
+### release notes for 0.2.3
+- moved all code back into `sch.py`
+- previous released packages where broken...
+
+### release notes for 0.2.4
+- updated release notes
+- got rid of outdated development section in the readme

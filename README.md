@@ -108,39 +108,6 @@ For `sch` managed jobs:
 - os.sytem executes the command
 - depending on the exit code, it will ping for success or ping the `/fail` end point on failure
 
-## Development environment
-### Setup environment
-``` console
-$ python -m venv venv
-$ . venv/bin/activate
-$ pip install --editable .
-```
-
-### Testing
-Create a file named `sch.conf` and edit the Healthchecks API URL and key:
-``` console
-cp sch.conf.example sch.conf
-```
-The configuration file looks like:
-``` console
- $ cat sch.conf.example 
-[hc]
-healthchecks_api_url = https://hc.example.com/api/v1/
-healthchecks_api_key = xxmysecretkeyxx
-```
-Create a test cron job:
-``` console
-$ sudo cp doc/testcrontab /etc/cron.d/test
-$ ./testshell.sh
-```
-
-### Syntax check
-Style Guide Enforcement:
-``` console
-$ pip install flake8
-$ flake8 *py
-```
-
 ### References
 * python-crontab <https://pypi.org/project/python-crontab/>
 * crab <https://github.com/grahambell/crab>
