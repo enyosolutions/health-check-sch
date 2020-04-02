@@ -6,20 +6,34 @@ A cron shell wrapper for registering and updating cron jobs automatically in
 
 
 ## Installation
-Install the `sch` shell and it's dependencies by running pip in the cloned
-repository:
+Install sch system wide with pip
 ``` console
-$ pip install sch
+$ sudo pip3 install sch
 ```
 
-Create a configuration file:
+A `sch` cli should now be availble:
 ``` console
-sudo cp sch.conf.example /etc/sch.conf
+$ which sch
+/usr/local/bin/sch
 ```
+
+`sch --version` should return something like:
+``` console
+sch, version 0.2.1
+```
+
+## Configuration
+Create a configuration file `/etc/sch.conf` that looks like:
+``` ini
+[hc]
+healthchecks_api_url = https://hc.example.com/api/v1/
+healthchecks_api_key = xxmysecretkeyxx
+```
+
 And fill in the API URL and the key obtained from the Healthchecks project
 settings block labeled "API Access".
 
-### Monitoring cron jobs
+## Monitoring cron jobs
 Just decorate your existing cron tabs by specifying the alternative `sch`:
 ```
 SHELL=/usr/local/bin/sch
