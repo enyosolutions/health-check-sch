@@ -16,3 +16,6 @@
 - setting the user-agent string to 'sch/{version}' when interacting with the
   Healthchecks API
 - got rid of outdated development section in the readme
+
+### release notes for 0.3.0
+- added command and filtering options for listing Healthchecks status

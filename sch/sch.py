@@ -61,9 +61,37 @@ def get_job_id(command):
     return None
 
 
+def get_hc_api():
+    """
+    try loading Healthchecks API url and key
+    and return an instance of Healthchecks or None if it failed
+    """
+    try:
+        config = configparser.ConfigParser()
+        config.read(['sch.conf', '/etc/sch.conf'])
+
+        url = config.get('hc', 'healthchecks_api_url')
+        key = config.get('hc', 'healthchecks_api_key')
+
+        cred = HealthchecksCredentials(
+            api_url=url,
+            api_key=key
+        )
+
+        healthchecks = Healthchecks(cred)
+    except configparser.Error:
+        logging.error(
+            'Could not find/read/parse config'
+            'file sch.conf or /etc/sch.conf'
+            )
+        healthchecks = None
+
+    return healthchecks
+
+
 def shell(command):
     """
-    sch:run is a cron shell that registers, updates and pings cron jobs in
+    sch:shell is a cron shell that registers, updates and pings cron jobs in
     healthchecks.io
 
     a cronfile should have the SHELL variable pointing to the sch executable.
@@ -89,25 +117,7 @@ def shell(command):
     except TypeError:
         logging.error("Could not find matching cron job")
 
-    # try loading Healthchecks API url and key
-    try:
-        config = configparser.ConfigParser()
-        config.read(['sch.conf', '/etc/sch.conf'])
-
-        url = config.get('hc', 'healthchecks_api_url')
-        key = config.get('hc', 'healthchecks_api_key')
-
-        cred = HealthchecksCredentials(
-            api_url=url,
-            api_key=key
-        )
-
-        health_checks = Healthchecks(cred)
-    except configparser.Error:
-        logging.error(
-            'Could not find/read/parse config'
-            'file sch.conf or /etc/sch.conf'
-            )
+    health_checks = get_hc_api()
 
     check = None
     interfere = False
@@ -228,7 +238,11 @@ class Healthchecks:
             }
 
     def get_checks(self, query=''):
-        """Returns a list of checks from the HC API"""
+        """
+        Returns a list of checks from the HC API
+        reference: https://healthchecks.io/docs/api/#list-checks
+        """
+
         url = "{api_url}checks/{query}".format(
             api_url=self.cred.api_url,
             query=query
@@ -455,7 +469,7 @@ class Healthchecks:
         logging.debug("Successfully set grace_time to %s seconds", grace)
         return True
 
-    def print_status(self, status_filter=""):
+    def print_status(self, host_filter, status_filter):
         """Show status of monitored cron jobs"""
         click.secho("{status:<6} {last_ping:<15} {name:<40}".format(
             status="Status",
@@ -468,7 +482,12 @@ class Healthchecks:
             last_ping=""
         ))
 
-        checks = self.get_checks()
+        query = ''  # host_filter == all
+        if host_filter == 'local':
+            tag_for_host = 'host={hostname}'.format(hostname=socket.getfqdn())
+            query = "?&tag={tag}".format(tag=quote_plus(tag_for_host))
+
+        checks = self.get_checks(query)
 
         for i in checks:
             if status_filter and i['status'] != status_filter:
