@@ -19,3 +19,7 @@
 
 ### release notes for 0.3.0
 - added command and filtering options for listing Healthchecks status
+
+### release notes for 0.4.0
+- changed command line flags for list
+- improved table alignment for the list command

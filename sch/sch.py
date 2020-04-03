@@ -469,21 +469,25 @@ class Healthchecks:
         logging.debug("Successfully set grace_time to %s seconds", grace)
         return True
 
-    def print_status(self, host_filter, status_filter):
-        """Show status of monitored cron jobs"""
-        click.secho("{status:<6} {last_ping:<15} {name:<40}".format(
+    def print_status(self, list_local, status_filter):
+        """
+        Show status of monitored cron jobs
+        """
+        line_template = "{status:7.7} {last_ping:15.15} {name:40.40}"
+        click.secho(line_template.format(
             status="Status",
             name="Name",
             last_ping="Last ping"
         ))
-        click.secho("{status:-<6} {last_ping:-<15} {name:-<40}".format(
-            status="",
-            name="",
-            last_ping=""
+        dashes = '----------------------------------------'
+        click.secho(line_template.format(
+            status=dashes,
+            name=dashes,
+            last_ping=dashes
         ))
 
-        query = ''  # host_filter == all
-        if host_filter == 'local':
+        query = ''
+        if list_local:
             tag_for_host = 'host={hostname}'.format(hostname=socket.getfqdn())
             query = "?&tag={tag}".format(tag=quote_plus(tag_for_host))
 
@@ -515,7 +519,7 @@ class Healthchecks:
                 last_ping = ''
 
             click.secho(
-                "{status:<6} {last_ping:<15} {name:<40}".format(
+                line_template.format(
                     status=i['status'],
                     name=i['name'],
                     last_ping=last_ping

@@ -21,6 +21,39 @@ $ which sch
 ``` console
 sch, version 0.2.1
 ```
+## Command line usage
+See the `--help` option for usage:
+``` console
+Usage: sch [OPTIONS] COMMAND [ARGS]...
+
+  sch - A cron shell wrapper for registering and updating cron jobs
+  automatically in Healthchecks. The Healthchecks project api_url and
+  api_key should be configured in /etc/sch.conf.
+
+Options:
+  --version                 Show the version and exit.
+  -c, --shell_command TEXT  Command to execute. This how Cron executes 'sch'
+                            when it is set as SHELL.
+  --help                    Show this message and exit.
+
+Commands:
+  list  List checks for the configured Healthchecks project.
+```
+
+### `list` command
+``` console
+Usage: sch list [OPTIONS]
+
+  List checks for the configured Healthchecks project.
+
+Options:
+  -l, --localhost / -a, --all     List checks that originate from this host
+                                  (default) or list all checks.
+  -s, --status [up|down|grace|started|pause|new]
+                                  Show only checks that have the specified
+                                  status.
+  --help                          Show this message and exit.
+```
 
 ## Configuration
 Create a configuration file `/etc/sch.conf` that looks like:
