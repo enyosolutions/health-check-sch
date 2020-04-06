@@ -9,6 +9,7 @@ import subprocess
 import logging
 import logging.handlers
 import os
+import time
 import re
 import socket
 import sys
@@ -19,7 +20,6 @@ import click
 import requests
 import tzlocal
 from crontabs import CronTabs
-from ttictoc import TicToc
 from . import __version__
 
 HANDLER = logging.handlers.SysLogHandler('/dev/log')
@@ -192,8 +192,7 @@ def shell(command):
     health_checks.ping(check, ping_type='/start')
 
     # start timer
-    timer = TicToc()
-    timer.tic()
+    start_time = time.time()
 
     # execute command
     logging.debug(
@@ -205,11 +204,11 @@ def shell(command):
     (exit_code, stdout, stderr) = execute_shell_command(command)
 
     # stop timer
-    timer.toc()
+    time_elapsed = time.time() - start_time
 
     logging.debug(
         "Command completed in %s seconds (job.id=%s)",
-        timer.elapsed,
+        time_elapsed,
         job.id,
         )
 
