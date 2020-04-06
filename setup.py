@@ -17,7 +17,6 @@ REQUIREMENTS = [
     'requests',
     'configparser',
     'tzlocal',
-    'ttictoc',
     ]
 
 SETUP_REQUIREMENTS = []
