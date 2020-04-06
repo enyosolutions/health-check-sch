@@ -221,7 +221,7 @@ def shell(command):
         # - new
         # - there's no JOB_GRACE set in the job command
         if is_new_check and not job.grace:
-            health_checks.set_grace(check, round(1.2 * timer.elapsed + 30))
+            health_checks.set_grace(check, round(1.2 * time_elapsed + 30))
     else:
         logging.error(
             "Command returned with exit code %s (job.id=%s)",
