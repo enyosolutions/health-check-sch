@@ -59,6 +59,6 @@ setup(
     test_suite='tests',
     tests_require=TEST_REQUIREMENTS,
     url='https://gitlab.science.ru.nl/bram/sch',
-    version='0.4.0',
+    version='0.5.0',
     zip_safe=False,
 )

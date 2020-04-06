@@ -5,6 +5,7 @@ import collections
 import configparser
 import hashlib
 import json
+import subprocess
 import logging
 import logging.handlers
 import os
@@ -36,13 +37,27 @@ ROOT.addHandler(HANDLER)
 def execute_shell_command(command):
     """
     runs the specified command in the system shell and
-    returns the exit code
-
-    what to do with stdout and stderr?
+    returns the exit code, stderr and stdout
     """
-    exit_code = os.system(command)
+    exit_code = 0
+    out = ''
+    err = ''
+    try:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True, close_fds=True
+            )
+        (out, err) = process.communicate()
+        exit_code = process.returncode
 
-    return exit_code
+    except OSError as error:
+        logging.error(
+            "Error running shell command: %s", error
+            )
+
+    return exit_code, out.decode('utf-8'), err.decode('utf-8')
 
 
 def get_job_id(command):
@@ -166,15 +181,15 @@ def shell(command):
             "Running a job without SCH interference, command: %s",
             command
             )
-        execute_shell_command(command)
-        sys.exit()
+        exit_code = os.system(command)
+        sys.exit(exit_code)
 
     # at this point, we're setup to do some smart stuff ;-)
     # we know the exact cron configration for the job
     # and are able to communicate with healthchecks
 
     # ping start
-    health_checks.ping(check, '/start')
+    health_checks.ping(check, ping_type='/start')
 
     # start timer
     timer = TicToc()
@@ -186,7 +201,8 @@ def shell(command):
         command,
         job.id,
         )
-    exit_code = execute_shell_command(command)
+
+    (exit_code, stdout, stderr) = execute_shell_command(command)
 
     # stop timer
     timer.toc()
@@ -214,11 +230,18 @@ def shell(command):
             job.id,
             )
         # ping failure
-        health_checks.ping(check, '/fail')
+        health_checks.ping(check,
+                           ping_type='/fail',
+                           data="command: {}\n"
+                                "exit code: {}\n"
+                                "stdout: {}\n"
+                                "stderr: {}".format(command,
+                                                    exit_code,
+                                                    stdout,
+                                                    stderr)
+                           )
 
 
-# if __name__ == "__main__":
-#    shell()
 HealthchecksCredentials = collections.namedtuple(
     'HealthchecksCredentials',
     'api_url api_key'
@@ -282,16 +305,17 @@ class Healthchecks:
         # no result found
         return None
 
-    def ping(self, check, ping_type=''):
+    def ping(self, check, ping_type='', data=''):
         """
         ping a healthchecks check
 
         ping_type can be '', '/start' or '/fail'
         """
         try:
-            response = requests.get(
+            response = requests.post(
                 check['ping_url'] + ping_type,
-                headers=self.auth_headers
+                headers=self.auth_headers,
+                data=data
                 )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
