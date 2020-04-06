@@ -23,3 +23,7 @@
 ### release notes for 0.4.0
 - changed command line flags for list
 - improved table alignment for the list command
+
+### release notes for 0.5.0
+- when a command fails, include the command, exit code, stdout and stderr in
+  the request body of the /fail ping 
