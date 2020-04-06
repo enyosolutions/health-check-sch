@@ -27,3 +27,6 @@
 ### release notes for 0.5.0
 - when a command fails, include the command, exit code, stdout and stderr in
   the request body of the /fail ping 
+
+### release notes for 0.5.1
+- got rid of ttictoc as it broke on ubuntu 16 for some reason, using time instead
