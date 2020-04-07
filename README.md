@@ -1,6 +1,8 @@
 [![pypy badge](https://img.shields.io/pypi/v/sch.svg)](https://pypi.python.org/pypi/)
 
 # SmartCronHelper
+![sch logo](https://gitlab.science.ru.nl/uploads/-/system/project/avatar/3732/sch3.png)
+
 A cron shell wrapper for registering and updating cron jobs automatically in
 [healthchecks](https://healthchecks.io) or your [own hosted copy of Healthchecks](https://github.com/healthchecks/healthchecks).
 
