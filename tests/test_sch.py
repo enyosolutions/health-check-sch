@@ -21,12 +21,16 @@ class TestSch(unittest.TestCase):
     def test_000_something(self):
         """Test something."""
 
-    def test_command_line_interface(self):
+    @staticmethod
+    def test_command_line_interface():
         """Test the CLI."""
         runner = CliRunner()
-        result = runner.invoke(cli.main)
-        assert result.exit_code == 0
-        assert 'sch.cli.main' in result.output
+
         help_result = runner.invoke(cli.main, ['--help'])
         assert help_result.exit_code == 0
-        assert '--help  Show this message and exit.' in help_result.output
+        assert 'Show this message and exit.' in help_result.output
+
+        list_help_result = runner.invoke(cli.main, ['list', '--help'])
+        assert list_help_result.exit_code == 0
+        list_help_text = 'List checks for the configured Healthchecks project.'
+        assert list_help_text in list_help_result.output
