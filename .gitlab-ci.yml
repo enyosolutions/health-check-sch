@@ -1,4 +1,4 @@
-image: "python:3.7"
+image: "painless/tox"
 
 before_script:
   - python --version
@@ -23,3 +23,7 @@ pylint:
 pytest:
   stage: Unit testing
   script: make test
+
+tox:
+  stage: Unit testing
+  script: tox
