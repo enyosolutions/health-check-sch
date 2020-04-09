@@ -516,7 +516,7 @@ class Healthchecks:
 
         checks = self.get_checks(query)
 
-        for i in checks:
+        for i in sorted(checks, key=lambda x: x['last_ping'], reverse=True):
             if status_filter and i['status'] != status_filter:
                 continue
 
