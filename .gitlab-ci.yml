@@ -20,10 +20,6 @@ pylint:
   script:
   - pylint -d C0301 setup.py sch/*.py
 
-pytest:
-  stage: Unit testing
-  script: make test
-
 tox:
   stage: Unit testing
   script: tox
