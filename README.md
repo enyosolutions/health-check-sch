@@ -59,6 +59,16 @@ Options:
   --help                          Show this message and exit.
 ```
 
+Example output
+``` console
+$ sch list 
+Status  Last ping       Name                                    
+------- --------------- ----------------------------------------
+up      2 minutes ago   disk-check                              
+up      4 hours ago     restic                                  
+up      5 days ago      restic_check  
+```
+
 ## Configuration
 Create a configuration file `/etc/sch.conf` that looks like:
 ``` ini
