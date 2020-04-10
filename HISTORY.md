@@ -27,3 +27,4 @@
 
 ### release notes for 0.6.x
 - listing of check status sorted by `last_ping`
+- added configuration option sch:loglevel

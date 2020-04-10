@@ -6,7 +6,7 @@
 A cron shell wrapper for registering and updating cron jobs automatically in
 [healthchecks](https://healthchecks.io) or your [own hosted copy of Healthchecks](https://github.com/healthchecks/healthchecks).
 
-> warning: this software package should be considered "alpha"
+> WARNING: once setup and configured, the code in this package runs as user specified in the cron jobs and is wrapped around the cron job commands. Errors in this package could prevent your cron jobs from being executed.
 
 
 ## Installation
@@ -23,7 +23,7 @@ $ which sch
 
 `sch --version` should return something like:
 ``` console
-sch, version 0.6.0
+sch, version 0.6.1
 ```
 ## Command line usage
 See the `--help` option for usage:
@@ -76,9 +76,15 @@ Create a configuration file `/etc/sch.conf` that looks like:
 healthchecks_api_url = https://hc.example.com/api/v1/
 healthchecks_api_key = xxmysecretkeyxx
 ```
-
 And fill in the API URL and the key obtained from the Healthchecks project
 settings block labeled "API Access".
+
+Optionally, specify the log level in the configuration file:
+``` ini
+[sch]
+loglevel = DEBUG
+```
+Possible values for loglevel are explained [here](https://docs.python.org/3/library/logging.html#levels). The default log level is `ERROR`.
 
 ## Monitoring cron jobs
 Just decorate your existing cron tabs by specifying the alternative `sch`:
