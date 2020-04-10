@@ -1,3 +1,6 @@
+[sch]
+loglevel = ERROR
+
 [hc]
 healthchecks_api_url = https://hc.example.com/api/v1/
 healthchecks_api_key = xxmysecretkeyxx
