@@ -23,7 +23,7 @@ $ which sch
 
 `sch --version` should return something like:
 ``` console
-sch, version 0.6.0
+sch, version 0.6.1
 ```
 ## Command line usage
 See the `--help` option for usage:
