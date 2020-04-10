@@ -22,6 +22,23 @@ import tzlocal
 from crontabs import CronTabs
 from . import __version__
 
+
+def get_config():
+    """
+    try loading the configuration file
+    """
+    try:
+        my_config = configparser.ConfigParser()
+        my_config.read(['sch.conf', '/etc/sch.conf'])
+    except configparser.Error:
+        logging.error(
+            'Could not find/read/parse config'
+            'file sch.conf or /etc/sch.conf'
+            )
+        my_config = None
+    return my_config
+
+
 HANDLER = logging.handlers.SysLogHandler('/dev/log')
 FORMATTER = logging.Formatter(
     '{name}/%(module)s.%(funcName)s:'
@@ -29,8 +46,13 @@ FORMATTER = logging.Formatter(
     )
 HANDLER.setFormatter(FORMATTER)
 ROOT = logging.getLogger()
-# log level DEBUG
-ROOT.setLevel(logging.DEBUG)
+CONFIG = get_config()
+try:
+    LEVEL = CONFIG.get('sch', 'loglevel')
+    ROOT.setLevel(LEVEL)
+except configparser.Error:
+    ROOT.setLevel(logging.ERROR)
+
 ROOT.addHandler(HANDLER)
 
 
@@ -81,10 +103,8 @@ def get_hc_api():
     try loading Healthchecks API url and key
     and return an instance of Healthchecks or None if it failed
     """
+    config = get_config()
     try:
-        config = configparser.ConfigParser()
-        config.read(['sch.conf', '/etc/sch.conf'])
-
         url = config.get('hc', 'healthchecks_api_url')
         key = config.get('hc', 'healthchecks_api_key')
 
@@ -97,7 +117,6 @@ def get_hc_api():
     except configparser.Error:
         logging.error(
             'Could not find/read/parse config'
-            'file sch.conf or /etc/sch.conf'
             )
         healthchecks = None
 
@@ -195,7 +214,7 @@ def shell(command):
     start_time = time.time()
 
     # execute command
-    logging.debug(
+    logging.info(
         "Executing shell commmand: %s (job.id=%s)",
         command,
         job.id,
