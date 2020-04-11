@@ -277,6 +277,7 @@ class Healthchecks:
             'X-Api-Key': self.cred.api_key,
             'User-Agent': 'sch/{version}'.format(version=__version__)
             }
+        self._metadata = {}
 
     def get_checks(self, query=''):
         """
@@ -379,30 +380,18 @@ class Healthchecks:
             )
 
         # gather all the jobs' metadata
-        data = {
-            'schedule': job.schedule,
-            'desc': job.comment,
-            'tz': tzlocal.get_localzone().zone,
-            'tags': 'sch host={host} job_id={job_id} user={user} '
-                    'hash={hash} {job_tags}'.format(
-                        host=socket.getfqdn(),
-                        job_id=job.id,
-                        user=os.environ['LOGNAME'],
-                        hash=job.hash,
-                        job_tags=job.tags
-                        )
-        }
+        self._gather_metadata(job)
 
         # grace time
         if job.grace:
-            data['grace'] = job.grace
+            self._metadata['grace'] = job.grace
 
         # post the data
         try:
             response = requests.post(
                 url=check['update_url'],
                 headers=self.auth_headers,
-                data=json.dumps(data)
+                data=json.dumps(self._metadata)
                 )
 
             response.raise_for_status()
@@ -430,33 +419,18 @@ class Healthchecks:
             )
 
         # gather all the jobs' metadata
-        data = {
-            'name': job.id,
-            'schedule': job.schedule,
-            'grace': 3600,
-            'desc': job.comment,
-            'channels': '*',  # all available notification channels
-            'tz': tzlocal.get_localzone().zone,
-            'tags': 'sch host={host} job_id={job_id} user={user} '
-                    'hash={hash} {job_tags}'.format(
-                        host=socket.getfqdn(),
-                        job_id=job.id,
-                        user=os.environ['LOGNAME'],
-                        hash=job.hash,
-                        job_tags=job.tags
-                        )
-        }
+        self._gather_metadata(job)
 
         # grace time
         if job.grace:
-            data['grace'] = self._coerce_grace(job.grace)
+            self._metadata['grace'] = self._coerce_grace(job.grace)
 
         # post the data
         try:
             response = requests.post(
                 url='{}/checks/'.format(self.cred.api_url),
                 headers=self.auth_headers,
-                json=data
+                json=self._metadata
                 )
 
             response.raise_for_status()
@@ -475,6 +449,25 @@ class Healthchecks:
 
         # return check
         return response.json()
+
+    def _gather_metadata(self, job):
+        # gather all the jobs' metadata
+        self._metadata = {
+            'name': job.id,
+            'schedule': job.schedule,
+            'grace': 3600,
+            'desc': job.comment,
+            'channels': '*',  # all available notification channels
+            'tz': tzlocal.get_localzone().zone,
+            'tags': 'sch host={host} job_id={job_id} user={user} '
+                    'hash={hash} {job_tags}'.format(
+                        host=socket.getfqdn(),
+                        job_id=job.id,
+                        user=os.environ['LOGNAME'],
+                        hash=job.hash,
+                        job_tags=job.tags
+                        )
+            }
 
     @staticmethod
     def _coerce_grace(grace):
