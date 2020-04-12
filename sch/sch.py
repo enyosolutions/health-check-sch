@@ -5,14 +5,15 @@ import collections
 import configparser
 import hashlib
 import json
-import subprocess
 import logging
 import logging.handlers
 import os
-import time
 import re
 import socket
+import subprocess
 import sys
+import time
+from random import random
 from urllib.parse import quote_plus
 
 import arrow
@@ -20,6 +21,7 @@ import click
 import requests
 import tzlocal
 from crontabs import CronTabs
+
 from . import __version__
 
 
@@ -207,6 +209,15 @@ def shell(command):
     # we know the exact cron configration for the job
     # and are able to communicate with healthchecks
 
+    # wait random delay
+    randomwait = random() * job.rndwait
+    logging.debug(
+        "Waiting for %.1f seconds before starting the job (job.id=%s)",
+        randomwait,
+        job.id,
+        )
+    time.sleep(randomwait)
+
     # ping start
     health_checks.ping(check, ping_type='/start')
 
@@ -240,7 +251,9 @@ def shell(command):
         # - new
         # - there's no JOB_GRACE set in the job command
         if is_new_check and not job.grace:
-            health_checks.set_grace(check, round(1.2 * time_elapsed + 30))
+            health_checks.set_grace(check,
+                                    round(1.2 * time_elapsed +
+                                          job.rndwait + 30))
     else:
         logging.error(
             "Command returned with exit code %s (job.id=%s)",
@@ -631,10 +644,11 @@ class Job():
         self.tags = self._get_tags()
         self.schedule = self._get_schedule()
         self.grace = self._get_grace()
+        self.rndwait = self._get_rndwait()
         # finally, determine hash
         self.hash = self._get_hash()
 
-    def _get_env_var(self, env_var):
+    def _get_env_var(self, env_var, default=None):
         """
         Returns the value of an environment variable
         """
@@ -643,7 +657,7 @@ class Job():
         if match:
             return match.group(1)
 
-        return None
+        return default
 
     def _get_id(self):
         """
@@ -687,7 +701,7 @@ class Job():
 
         # job schedule
         md5.update(self.schedule.encode('utf-8'))
-        # the command itself
+        # the command itself (including environment variables)
         md5.update(self.command.encode('utf-8'))
         # the comment
         md5.update(self.comment.encode('utf-8'))
@@ -700,6 +714,17 @@ class Job():
 
         return md5.hexdigest()
 
+    def _get_rndwait(self):
+        """
+        Returns the value of environment variable JOB_RNDWAIT if specified
+        in the cron job
+        """
+        rndwait = self._get_env_var('JOB_RNDWAIT')
+        if rndwait:
+            return self._human_to_seconds(rndwait)
+
+        return 0
+
     def _get_grace(self):
         """
         Returns the jobs grace time in seconds as specified by the
@@ -708,9 +733,8 @@ class Job():
         grace = self._get_env_var('JOB_GRACE')
         if grace:
             grace = self._human_to_seconds(grace)
-            return grace
 
-        return None
+        return grace
 
     @staticmethod
     def _human_to_seconds(string):
