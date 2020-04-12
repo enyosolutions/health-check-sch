@@ -147,7 +147,7 @@ def shell(command):
 
     # find system cron job that executes this command
     try:
-        job = Cron(job_id).job()
+        job = Cron(job_id).get_job()
     except TypeError:
         logging.error("Could not find matching cron job")
 
@@ -587,7 +587,7 @@ class Cron():
             if crontab.enabled:
                 self._jobs.append(Job(crontab))
 
-    def job(self):
+    def get_job(self):
         """
         returns the matching cron job
         or None if there are no or multiple matches or
