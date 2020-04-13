@@ -23,7 +23,7 @@ $ which sch
 
 `sch --version` should return something like:
 ``` console
-sch, version 0.6.2
+sch, version 0.7.0
 ```
 ## Command line usage
 See the `--help` option for usage:
@@ -61,7 +61,7 @@ Options:
 
 Example output
 ``` console
-$ sch list 
+$ sch list
 Status  Last ping       Name                                    
 ------- --------------- ----------------------------------------
 up      2 minutes ago   disk-check                              
@@ -102,34 +102,24 @@ The value of `JOB_ID` should be unique for the host.
 The combination of the `JOB_ID` environment variable and the `sch` shell is enough
 to have the job checked in Healthchecks.
 
-At each run of the job, `sch` will take care that the schedule, description and 
+At each run of the job, `sch` will take care that the schedule, description and
 other metadata is synchronized whenever there's a change in the cron job. Just
 makes sure to not change the `JOB_ID` (or it will create a new check).
- 
-### Other meta data
-The following data is used to configure a corresponding Healthchecks check:
-- `JOB_ID`: the environment variable is used for the name of the check and a tag named `job_id={value of JOB_ID}`
-- the cron lines' **comment** is used for the description of the check. The comment line just above a cron line or the inline comment is used
-- `JOB_TAGS`: use this environment variable in a job to specify tag names separated by a comma to specify additional tags
-- `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
-- the jobs **schedule** and the hosts **timezone** is used to set the checks schedule
-- `JOB_GRACE`: the value of this environment variable is used to set the grace time in seconds for the check. See JOB_GRACE for valid interval formats.
-- when registering a new check and JOB_GRACE is not set, the **execution time** of the command is used to set an initial grace time. The grace time will be set to 1.2 times the execution time + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days.
 
-An example of a cron file that touches most of the functionality would look like:
-```
-SHELL=/usr/local/bin/sch
-# if this check fails, the host is probably offline
-* * * * * root JOB_ID=true /bin/true
-```
-Although above cron job is useful, a more realistic could look like:
-```
-SHELL=/usr/loca/bin/sch
-# super important backup, if this one fails: fix with top priority!
-10 8-20/2 * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project JOB_GRACE=5m /usr/local/bin/run-db-backups
-```
+### Per job configurable options
+Just like the `JOB_ID` environment described in the previous paragraph. There are
+other job specific environment variables that can be used to configure the behavior
+of the cron job or the associated Healthchecks check. These are described in the
+table below:
 
-#### JOB_GRACE interval format
+| Environment variable | Example value | Description | Associated Healthchecks check setting |
+| :--------------------|:--------------| ------------|---------------------------------------|
+| `JOB_ID*`            | `backup`      | Required for `sch` to interact with the Healthchecks API | check name, tags |
+| `JOB_TAGS`           | `foo,bar`     | Specify tag names separated by a comma | tags |
+| `JOB_GRACE`          | `5m`          | Grace time specified in seconds or use the time interval format described below. The grace time will be set to 1.2 times the execution time + `JOB_RNDWAIT` + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days. | grace time |
+| `JOB_RNDWAIT`        | `1m `         | Max. wait time in seconds or use the time interval format described below. Use this setting to introduce a random delay. `sch` will wait a random time between 0 and `JOB_RNDWAIT` before executing the job's command. | grace time |
+
+#### Interval format
 If no suffixes are used, seconds are assumed.
 You can make use of the following suffixes to specify an interval:
 
@@ -143,16 +133,38 @@ You can make use of the following suffixes to specify an interval:
 | M      | months   |
 | Y      | years    |
 
-Although days and weeks are accepted, you might want to limit the interval to several hours ;-)
+Although days and weeks are accepted, you might want to limit the interval to several minutes ;-)
 
 Examples:
 
-| environment variable | grace time |
-|----------------------|------------|
-| `JOB_GRACE=5m`       | 300s       |
-| `JOB_GRACE=120`      | 120s       |
-| `JOB_GRACE=1h30m`    | 5400s      |
+| Interval | Duration     |
+|----------|-------------:|
+| `5m`     |  300 seconds |
+| `120`    |  120 seconds |
+| `1h30m`  | 5400 seconds | 
 
+### Other meta data
+- the cron lines' **comment** is used for the description of the check. The comment line just above a cron line or the inline comment is used
+- `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
+
+### Some example cron jobs
+An example of a cron file that touches most of the functionality would look like:
+```
+SHELL=/usr/local/bin/sch
+# if this check fails, the host is probably offline
+* * * * * root JOB_ID=true /bin/true
+```
+
+Although above cron job is useful, a more advanced configuration could look like:
+```
+SHELL=/usr/loca/bin/sch
+# super important backup, if this one fails: fix with top priority!
+10 8-20/2 * * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project JOB_RNDWAIT=2m JOB_GRACE=5m /usr/local/bin/run-db-backups
+```
+Resulting in the following check:
+![screenshot of a more advanced check](doc/hc-screenshot-advanced.png)
+
+![screenshot of a more advanced check with description](doc/hc-screenshot-advanced-description.png)
 
 ### Job execution
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
