@@ -28,3 +28,7 @@
 ### release notes for 0.6.x
 - listing of check status sorted by `last_ping`
 - added configuration option sch:loglevel
+
+### release notes for 0.7.x
+- added `JOB_RNDWAIT` configuration option to introduce a random wait
+
