@@ -112,12 +112,36 @@ other job specific environment variables that can be used to configure the behav
 of the cron job or the associated Healthchecks check. These are described in the
 table below:
 
-| Environment variable | Example value | Description | associated Healthchecks check setting |
-| :--------------------|:--------| -----------|-|
-| `JOB_ID*`            | `backup`| Required for `sch` to interact with the Healthchecks API | check name, tags |
-| `JOB_TAGS`           | `foo,bar` | Specify tag names separated by a comma | tags |
-| `JOB_GRACE`          | `5m` | Grace time specified in seconds or use the time interval format described below. The grace time will be set to 1.2 times the execution time + `JOB_RNDWAIT` + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days. | grace time |
-| `JOB_RNDWAIT`| `1m `| Max. wait time in seconds or use the time interval format described below. Use this setting to introduce a random delay. `sch` will wait a random time between 0 and `JOB_RNDWAIT` before executing the job's command. | grace time |
+| Environment variable | Example value | Description | Associated Healthchecks check setting |
+| :--------------------|:--------------| ------------|---------------------------------------|
+| `JOB_ID*`            | `backup`      | Required for `sch` to interact with the Healthchecks API | check name, tags |
+| `JOB_TAGS`           | `foo,bar`     | Specify tag names separated by a comma | tags |
+| `JOB_GRACE`          | `5m`          | Grace time specified in seconds or use the time interval format described below. The grace time will be set to 1.2 times the execution time + `JOB_RNDWAIT` + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days. | grace time |
+| `JOB_RNDWAIT`        | `1m `         | Max. wait time in seconds or use the time interval format described below. Use this setting to introduce a random delay. `sch` will wait a random time between 0 and `JOB_RNDWAIT` before executing the job's command. | grace time |
+
+#### Interval format
+If no suffixes are used, seconds are assumed.
+You can make use of the following suffixes to specify an interval:
+
+| Suffix | Interval |
+|--------|----------|
+| s      | seconds  |
+| m      | minutes  |
+| h      | hours    |
+| D      | days     |
+| W      | weeks    |
+| M      | months   |
+| Y      | years    |
+
+Although days and weeks are accepted, you might want to limit the interval to several minutes ;-)
+
+Examples:
+
+| Interval | Duration     |
+|----------|-------------:|
+| `5m`     |  300 seconds |
+| `120`    |  120 seconds |
+| `1h30m`  | 5400 seconds | 
 
 ### Other meta data
 - the cron lines' **comment** is used for the description of the check. The comment line just above a cron line or the inline comment is used
@@ -141,31 +165,6 @@ Resulting in the following check:
 ![screenshot of a more advanced check](doc/hc-screenshot-advanced.png)
 
 ![screenshot of a more advanced check with description](doc/hc-screenshot-advanced-description.png)
-
-#### Interval format
-If no suffixes are used, seconds are assumed.
-You can make use of the following suffixes to specify an interval:
-
-| Suffix | Interval |
-|--------|----------|
-| s      | seconds  |
-| m      | minutes  |
-| h      | hours    |
-| D      | days     |
-| W      | weeks    |
-| M      | months   |
-| Y      | years    |
-
-Although days and weeks are accepted, you might want to limit the interval to several hours ;-)
-
-Examples:
-
-| environment variable | grace time |
-|----------------------|------------|
-| `JOB_GRACE=5m`       | 300s       |
-| `JOB_GRACE=120`      | 120s       |
-| `JOB_GRACE=1h30m`    | 5400s      |
-
 
 ### Job execution
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
