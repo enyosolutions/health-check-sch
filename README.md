@@ -162,9 +162,9 @@ SHELL=/usr/loca/bin/sch
 10 8-20/2 * * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project JOB_RNDWAIT=2m JOB_GRACE=5m /usr/local/bin/run-db-backups
 ```
 Resulting in the following check:
-![screenshot of a more advanced check](doc/hc-screenshot-advanced.png)
+![screenshot of a more advanced check](https://gitlab.science.ru.nl/bram/sch/-/raw/master/doc/hc-screenshot-advanced.png)
 
-![screenshot of a more advanced check with description](doc/hc-screenshot-advanced-description.png)
+![screenshot of a more advanced check with description](https://gitlab.science.ru.nl/bram/sch/-/raw/master/doc/hc-screenshot-advanced-description.png)
 
 ### Job execution
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
