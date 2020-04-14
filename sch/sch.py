@@ -138,7 +138,7 @@ def shell(command):
     a line the cron line.
 
     If you want to set additional tags for your check, you should do that with
-    an environment variable JOB_TAGS. Seperate multiple tags with a comma.
+    an environment variable JOB_TAGS. Separate multiple tags with a comma.
     """
     # pylint:disable=too-many-statements
     # pylint:disable=too-many-branches
@@ -206,7 +206,7 @@ def shell(command):
         sys.exit(exit_code)
 
     # at this point, we're setup to do some smart stuff ;-)
-    # we know the exact cron configration for the job
+    # we know the exact cron configuration for the job
     # and are able to communicate with healthchecks
 
     # wait random delay
@@ -226,7 +226,7 @@ def shell(command):
 
     # execute command
     logging.info(
-        "Executing shell commmand: %s (job.id=%s)",
+        "Executing shell command: %s (job.id=%s)",
         command,
         job.id,
         )
@@ -330,7 +330,7 @@ class Healthchecks:
 
         checks = self.get_checks(query)
 
-        # we are only interrested if we found exactly one match
+        # we are only interested if we found exactly one match
         if checks and len(checks) == 1:
             return checks[0]
 
@@ -357,7 +357,7 @@ class Healthchecks:
     def get_check_hash(check):
         """
         returns the hash stored in a tag of a healthchecks check
-        the tags lookes like:
+        the tags looks like:
 
             hash=fdec0d88e53cc57ef666c8ec548c88bb
 
@@ -417,7 +417,7 @@ class Healthchecks:
             return False
 
         logging.debug(
-            "Sucessfully updated check (job.id=%s)",
+            "Successfully updated check (job.id=%s)",
             job.id
             )
         return True

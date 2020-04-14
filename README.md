@@ -15,7 +15,7 @@ Install sch system wide with pip
 $ sudo pip3 install sch
 ```
 
-A `sch` cli should now be availble:
+A `sch` cli should now be available:
 ``` console
 $ which sch
 /usr/local/bin/sch
@@ -170,7 +170,7 @@ Resulting in the following check:
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
 For `sch` managed jobs:
 - `sch` will start with pinging `/start` endpoint of the check
-- os.sytem executes the command
+- os.system executes the command
 - depending on the exit code, it will ping for success or ping the `/fail` end point on failure
 
 ### References
