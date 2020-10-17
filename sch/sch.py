@@ -330,12 +330,15 @@ class Healthchecks:
 
         checks = self.get_checks(query)
 
-        # we are only interested if we found exactly one match
-        if checks and len(checks) == 1:
-            return checks[0]
+        if len(checks) > 1:
+            logging.debug("Found %d checks for job (job.id=%s), one expected",
+                          len(checks),
+                          job.id)
 
-        # no result found
-        return None
+        try:
+            return checks[0]
+        except IndexError:
+            return None
 
     def ping(self, check, ping_type='', data=''):
         """
