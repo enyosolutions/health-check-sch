@@ -31,21 +31,26 @@ def get_config():
     """
     try:
         my_config = configparser.ConfigParser()
-        my_config.read(['sch.conf', '/etc/sch.conf'])
+        my_config.read(['sch.conf', os.path.expanduser('~/.sch.conf')])
     except configparser.Error:
         logging.error(
             'Could not find/read/parse config'
-            'file sch.conf or /etc/sch.conf'
-            )
+            'file sch.conf or ~/.sch.conf'
+        )
         my_config = None
     return my_config
 
 
-HANDLER = logging.handlers.SysLogHandler('/dev/log')
+if not os.path.exists('/dev/log'):
+    DEFAULT_LOG = '/var/run/syslog'
+else:
+    DEFAULT_LOG = '/dev/log'
+HANDLER = logging.handlers.SysLogHandler(DEFAULT_LOG)
+HANDLER = logging.StreamHandler()
 FORMATTER = logging.Formatter(
     '{name}/%(module)s.%(funcName)s:'
     '%(levelname)s %(message)s'.format(name=__name__)
-    )
+)
 HANDLER.setFormatter(FORMATTER)
 ROOT = logging.getLogger()
 CONFIG = get_config()
@@ -72,14 +77,14 @@ def execute_shell_command(command):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=True, close_fds=True
-            )
+        )
         (out, err) = process.communicate()
         exit_code = process.returncode
 
     except OSError as error:
         logging.error(
             "Error running shell command: %s", error
-            )
+        )
 
     return exit_code, out.decode('utf-8'), err.decode('utf-8')
 
@@ -119,7 +124,7 @@ def get_hc_api():
     except configparser.Error:
         logging.error(
             'Could not find/read/parse config'
-            )
+        )
         healthchecks = None
 
     return healthchecks
@@ -147,22 +152,24 @@ def shell(command):
     # command = sys.argv[2]
     job_id = get_job_id(command)
 
+    print("job_id: %s" % job_id + ' ' + command)
     # find system cron job that executes this command
     try:
-        job = Cron(job_id).get_job()
+        job = Cron(job_id, command).get_job()
     except TypeError:
         logging.error("Could not find matching cron job")
 
     health_checks = get_hc_api()
-
     check = None
     interfere = False
     # pylint:disable=broad-except
     try:
-        check = health_checks.find_check(job)
-    except Exception:
+        if job:
+            check = health_checks.find_check(job)
+    except Exception as error:
         # do not update or create checks because of communication problems
         logging.error('Ooops! Could not communicate with the healthchecks API')
+        print(error)
         interfere = False
     else:
         if check:
@@ -170,7 +177,7 @@ def shell(command):
             logging.debug(
                 "found check for cron job (job.id=%s)",
                 job.id,
-                )
+            )
             is_new_check = False
             health_checks.update_check(check, job)
             interfere = True
@@ -179,7 +186,7 @@ def shell(command):
             logging.debug(
                 "no check found for cron job (job.id=%s)",
                 job.id,
-                )
+            )
             is_new_check = True
             check = health_checks.new_check(job)
 
@@ -190,7 +197,7 @@ def shell(command):
                     "Could not find or register check for given command. "
                     "Using read-only API keys? (job.id=%s)",
                     job.id,
-                    )
+                )
 
     # pylint:enable=broad-except
 
@@ -201,7 +208,7 @@ def shell(command):
         logging.debug(
             "Running a job without SCH interference, command: %s",
             command
-            )
+        )
         exit_code = os.system(command)
         sys.exit(exit_code)
 
@@ -215,7 +222,7 @@ def shell(command):
         "Waiting for %.1f seconds before starting the job (job.id=%s)",
         randomwait,
         job.id,
-        )
+    )
     time.sleep(randomwait)
 
     # ping start
@@ -229,7 +236,7 @@ def shell(command):
         "Executing shell command: %s (job.id=%s)",
         command,
         job.id,
-        )
+    )
 
     (exit_code, stdout, stderr) = execute_shell_command(command)
 
@@ -240,7 +247,7 @@ def shell(command):
         "Command completed in %s seconds (job.id=%s)",
         time_elapsed,
         job.id,
-        )
+    )
 
     # ping end
     if exit_code == 0:
@@ -259,12 +266,12 @@ def shell(command):
             "Command returned with exit code %s (job.id=%s)",
             exit_code,
             job.id,
-            )
+        )
         # ping failure
         health_checks.ping(check,
                            ping_type='/fail',
                            data="command: {}\n"
-                                "exit code: {}\n"
+                                "exit code: {}\n\n"
                                 "stdout: {}\n"
                                 "stderr: {}".format(command,
                                                     exit_code,
@@ -276,7 +283,7 @@ def shell(command):
 HealthchecksCredentials = collections.namedtuple(
     'HealthchecksCredentials',
     'api_url api_key'
-    )
+)
 
 
 class Healthchecks:
@@ -284,12 +291,13 @@ class Healthchecks:
     Interfaces with e healthckecks.io compatible API to register
     cron jobs found on the system.
     """
+
     def __init__(self, cred):
         self.cred = cred
         self.auth_headers = {
             'X-Api-Key': self.cred.api_key,
             'User-Agent': 'sch/{version}'.format(version=__version__)
-            }
+        }
         self._metadata = {}
 
     def get_checks(self, query=''):
@@ -301,7 +309,7 @@ class Healthchecks:
         url = "{api_url}checks/{query}".format(
             api_url=self.cred.api_url,
             query=query
-            )
+        )
 
         try:
             response = requests.get(url, headers=self.auth_headers)
@@ -326,7 +334,7 @@ class Healthchecks:
         query = "?&tag={tag1}&tag={tag2}".format(
             tag1=quote_plus(tag_for_job_id),
             tag2=quote_plus(tag_for_host)
-            )
+        )
 
         checks = self.get_checks(query)
 
@@ -351,7 +359,7 @@ class Healthchecks:
                 check['ping_url'] + ping_type,
                 headers=self.auth_headers,
                 data=data
-                )
+            )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             logging.error('could not ping, error: %s', err)
@@ -386,14 +394,14 @@ class Healthchecks:
                 logging.debug(
                     "Hash did not change (job.id=%s)",
                     job.id
-                    )
+                )
                 return True
 
         logging.debug(
             "Hash changed: "
             "about to update the check (job.id=%s)",
             job.id
-            )
+        )
 
         # gather all the jobs' metadata
         self._gather_metadata(job)
@@ -404,11 +412,14 @@ class Healthchecks:
 
         # post the data
         try:
+            print('\n\n\n')
+            print('{}checks/'.format(self.cred.api_url))
+            print('\n\n\n')
             response = requests.post(
                 url=check['update_url'],
                 headers=self.auth_headers,
                 data=json.dumps(self._metadata)
-                )
+            )
 
             response.raise_for_status()
         except requests.exceptions.HTTPError:
@@ -416,13 +427,13 @@ class Healthchecks:
                 "An error occurred while updating check (job.id=%s)",
                 job.id,
                 exc_info=True
-                )
+            )
             return False
 
         logging.debug(
             "Successfully updated check (job.id=%s)",
             job.id
-            )
+        )
         return True
 
     def new_check(self, job):
@@ -432,7 +443,7 @@ class Healthchecks:
         logging.debug(
             "Creating a new check (job.id=%s)",
             job.id
-            )
+        )
 
         # gather all the jobs' metadata
         self._gather_metadata(job)
@@ -444,24 +455,25 @@ class Healthchecks:
         # post the data
         try:
             response = requests.post(
-                url='{}/checks/'.format(self.cred.api_url),
+                url='{}checks/'.format(self.cred.api_url),
                 headers=self.auth_headers,
                 json=self._metadata
-                )
-
+            )
+            print('\n\n\n')
+            print(response.text)
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             logging.error(
                 "An error occurred while creating a check (job.id=%s)",
                 job.id,
                 exc_info=True
-                )
+            )
             return None
 
         logging.debug(
             "Successfully created a new check (job.id=%s)",
             job.id
-            )
+        )
 
         # return check
         return response.json()
@@ -482,10 +494,10 @@ class Healthchecks:
                         user=os.environ['LOGNAME'],
                         hash=job.hash,
                         job_tags=job.tags
-                        )
-            }
+            )
+        }
 
-    @staticmethod
+    @ staticmethod
     def _coerce_grace(grace):
         """
         returns a grace time that respects the hc api
@@ -507,14 +519,14 @@ class Healthchecks:
                 url=check['update_url'],
                 headers=self.auth_headers,
                 json=data
-                )
+            )
 
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             logging.error(
                 "An error occurred while updating the grace time",
                 exc_info=True
-                )
+            )
             return False
 
         logging.debug("Successfully set grace_time to %s seconds", grace)
@@ -586,9 +598,11 @@ class Cron():
     "JOB_ID={job_id}" for given job_id
     """
     # pylint: disable=too-few-public-methods
-    def __init__(self, job_id):
+
+    def __init__(self, job_id, job_command):
         self._jobs = []
         self._job_id = job_id
+        self._job_command = job_command
 
         command_filter = "JOB_ID={} ".format(job_id)
         crontabs = CronTabs().all.find_command(command_filter)
@@ -614,8 +628,24 @@ class Cron():
             '. 1 expected (job.id=%s)',
             len(self._jobs),
             self._job_id
-            )
-        return None
+        )
+
+        class Object(object):
+            pass
+        out = Object()
+        out.id = self._job_id
+        out.schedule = '0 0 * * *'
+        out.comment = self._job_command
+        out.command = self._job_command
+        out.hash = None
+        out.tags = ''
+        out.grace = ''
+        out.rndwait = 0
+        out.slices = None
+
+        job = Job(out)
+        return job
+      # return None
 
 
 INTERVAL_DICT = collections.OrderedDict([
@@ -684,19 +714,20 @@ class Job():
         extract the schedule in 5 column notation from the given job
         """
         # correct schedule aliases back to fields
-        schedule = self._job.slices.render()
-        if schedule == '@hourly':
-            schedule = '0 * * * *'
-        if schedule == '@daily':
-            schedule = '0 0 * * *'
-        if schedule == '@weekly':
-            schedule = '0 0 * * 0'
-        if schedule == '@monthly':
-            schedule = '0 0 1 * *'
-        if schedule == '@yearly':
-            schedule = '0 0 1 1 *'
-
-        return schedule
+        if self._job.slices:
+            schedule = self._job.slices.render()
+            if schedule == '@hourly':
+                schedule = '0 * * * *'
+            if schedule == '@daily':
+                schedule = '0 0 * * *'
+            if schedule == '@weekly':
+                schedule = '0 0 * * 0'
+            if schedule == '@monthly':
+                schedule = '0 0 1 * *'
+            if schedule == '@yearly':
+                schedule = '0 0 1 1 *'
+            return schedule
+        return '0 0 * * *'
 
     def _get_hash(self):
         """Returns the unique hash for given cron job"""
@@ -739,7 +770,7 @@ class Job():
 
         return grace
 
-    @staticmethod
+    @ staticmethod
     def _human_to_seconds(string):
         """Convert internal string like 1M, 1Y3M, 3W to seconds.
 

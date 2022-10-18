@@ -1,6 +1,7 @@
 [![pypy badge](https://img.shields.io/pypi/v/sch.svg)](https://pypi.python.org/pypi/)
 
 # SmartCronHelper
+
 ![sch logo](https://gitlab.science.ru.nl/uploads/-/system/project/avatar/3732/sch3.png)
 
 A cron shell wrapper for registering and updating cron jobs automatically in
@@ -8,31 +9,37 @@ A cron shell wrapper for registering and updating cron jobs automatically in
 
 > WARNING: once setup and configured, the code in this package runs as user specified in the cron jobs and is wrapped around the cron job commands. Errors in this package could prevent your cron jobs from being executed.
 
-
 ## Installation
+
 Install sch system wide with pip
-``` console
+
+```console
 $ sudo pip3 install sch
 ```
 
 A `sch` cli should now be available:
-``` console
+
+```console
 $ which sch
 /usr/local/bin/sch
 ```
 
 `sch --version` should return something like:
-``` console
-sch, version 0.7.2
+
+```console
+sch, version 0.7.3
 ```
+
 ## Command line usage
+
 See the `--help` option for usage:
-``` console
+
+```console
 Usage: sch [OPTIONS] COMMAND [ARGS]...
 
   sch - A cron shell wrapper for registering and updating cron jobs
   automatically in Healthchecks. The Healthchecks project api_url and
-  api_key should be configured in /etc/sch.conf.
+  api_key should be configured in ~/.sch.conf.
 
 Options:
   --version                 Show the version and exit.
@@ -45,7 +52,8 @@ Commands:
 ```
 
 ### `list` command
-``` console
+
+```console
 Usage: sch list [OPTIONS]
 
   List checks for the configured Healthchecks project.
@@ -60,43 +68,54 @@ Options:
 ```
 
 Example output
-``` console
+
+```console
 $ sch list
-Status  Last ping       Name                                    
+Status  Last ping       Name
 ------- --------------- ----------------------------------------
-up      2 minutes ago   disk-check                              
-up      4 hours ago     restic                                  
-up      5 days ago      restic_check  
+up      2 minutes ago   disk-check
+up      4 hours ago     restic
+up      5 days ago      restic_check
 ```
 
 ## Configuration
-Create a configuration file `/etc/sch.conf` that looks like:
-``` ini
+
+Create a configuration file `~/.sch.conf` that looks like:
+
+```ini
 [hc]
 healthchecks_api_url = https://hc.example.com/api/v1/
 healthchecks_api_key = xxmysecretkeyxx
 ```
+
 And fill in the API URL and the key obtained from the Healthchecks project
 settings block labeled "API Access".
 
 Optionally, specify the log level in the configuration file:
-``` ini
+
+```ini
 [sch]
 loglevel = DEBUG
 ```
+
 Possible values for loglevel are explained [here](https://docs.python.org/3/library/logging.html#levels). The default log level is `ERROR`.
 
 ## Monitoring cron jobs
+
 Just decorate your existing cron tabs by specifying the alternative `sch`:
+
 ```
 SHELL=/usr/local/bin/sch
 ```
+
 This line should be above the cron lines you want to have monitored by Healthchecks.
 
 Only jobs with the environment variable `JOB_ID`, ie:
+
 ```
 */5 * * * * root JOB_ID=some_id /path/to/some_command
 ```
+
 The value of `JOB_ID` should be unique for the host.
 
 The combination of the `JOB_ID` environment variable and the `sch` shell is enough
@@ -107,24 +126,26 @@ other metadata is synchronized whenever there's a change in the cron job. Just
 makes sure to not change the `JOB_ID` (or it will create a new check).
 
 ### Per job configurable options
+
 Just like the `JOB_ID` environment described in the previous paragraph. There are
 other job specific environment variables that can be used to configure the behavior
 of the cron job or the associated Healthchecks check. These are described in the
 table below:
 
-| Environment variable | Example value | Description | Associated Healthchecks check setting |
-| :--------------------|:--------------| ------------|---------------------------------------|
-| `JOB_ID*`            | `backup`      | Required for `sch` to interact with the Healthchecks API | check name, tags |
-| `JOB_TAGS`           | `foo,bar`     | Specify tag names separated by a comma | tags |
-| `JOB_GRACE`          | `5m`          | Grace time specified in seconds or use the time interval format described below. The grace time will be set to 1.2 times the execution time + `JOB_RNDWAIT` + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days. | grace time |
-| `JOB_RNDWAIT`        | `1m `         | Max. wait time in seconds or use the time interval format described below. Use this setting to introduce a random delay. `sch` will wait a random time between 0 and `JOB_RNDWAIT` before executing the job's command. | grace time |
+| Environment variable | Example value | Description                                                                                                                                                                                                                                                                      | Associated Healthchecks check setting |
+| :------------------- | :------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `JOB_ID*`            | `backup`      | Required for `sch` to interact with the Healthchecks API                                                                                                                                                                                                                         | check name, tags                      |
+| `JOB_TAGS`           | `foo,bar`     | Specify tag names separated by a comma                                                                                                                                                                                                                                           | tags                                  |
+| `JOB_GRACE`          | `5m`          | Grace time specified in seconds or use the time interval format described below. The grace time will be set to 1.2 times the execution time + `JOB_RNDWAIT` + 30 seconds. As per the Healthchecks API, the minimal grace time is 1 minute and the maximum grace time is 30 days. | grace time                            |
+| `JOB_RNDWAIT`        | `1m `         | Max. wait time in seconds or use the time interval format described below. Use this setting to introduce a random delay. `sch` will wait a random time between 0 and `JOB_RNDWAIT` before executing the job's command.                                                           | grace time                            |
 
 #### Interval format
+
 If no suffixes are used, seconds are assumed.
 You can make use of the following suffixes to specify an interval:
 
 | Suffix | Interval |
-|--------|----------|
+| ------ | -------- |
 | s      | seconds  |
 | m      | minutes  |
 | h      | hours    |
@@ -137,18 +158,21 @@ Although days and weeks are accepted, you might want to limit the interval to se
 
 Examples:
 
-| Interval | Duration     |
-|----------|-------------:|
+| Interval |     Duration |
+| -------- | -----------: |
 | `5m`     |  300 seconds |
 | `120`    |  120 seconds |
-| `1h30m`  | 5400 seconds | 
+| `1h30m`  | 5400 seconds |
 
 ### Other meta data
+
 - the cron lines' **comment** is used for the description of the check. The comment line just above a cron line or the inline comment is used
 - `$USER`: the current user running the cron command is used to create a tag named `user=$USER`
 
 ### Some example cron jobs
+
 An example of a cron file that touches most of the functionality would look like:
+
 ```
 SHELL=/usr/local/bin/sch
 # if this check fails, the host is probably offline
@@ -156,44 +180,54 @@ SHELL=/usr/local/bin/sch
 ```
 
 Although above cron job is useful, a more advanced configuration could look like:
+
 ```
 SHELL=/usr/loca/bin/sch
 # super important backup, if this one fails: fix with top priority!
 10 8-20/2 * * mon-fri  backup  JOB_ID=db-backups JOB_TAGS=db,backup,my_project JOB_RNDWAIT=2m JOB_GRACE=5m /usr/local/bin/run-db-backups
 ```
+
 Resulting in the following check:
 ![screenshot of a more advanced check](https://gitlab.science.ru.nl/bram/sch/-/raw/master/doc/hc-screenshot-advanced.png)
 
 ![screenshot of a more advanced check with description](https://gitlab.science.ru.nl/bram/sch/-/raw/master/doc/hc-screenshot-advanced-description.png)
 
 ### Job execution
+
 `sch` takes over the role of the shell. Jobs not containing the `JOB_ID` environment variable are directly executed with `os.system`.
 For `sch` managed jobs:
+
 - `sch` will start with pinging `/start` endpoint of the check
 - os.system executes the command
 - depending on the exit code, it will ping for success or ping the `/fail` end point on failure
 
 ### References
-* python-crontab <https://pypi.org/project/python-crontab/>
-* crab <https://github.com/grahambell/crab>
+
+- python-crontab <https://pypi.org/project/python-crontab/>
+- crab <https://github.com/grahambell/crab>
 
 ## Notes
+
 ### fully qualified domain name
+
 `sch` uses the FQDN to identify the hosts it's running on. You can check the FQDN with:
-``` console
+
+```console
 $ hostname --fqdn
 host.example.com
 ```
 
 However, on some systems that don't know the domain part, it just returns the
 (short) hostname instead:
-``` console
+
+```console
 $ hostname --fqdn
 host
 ```
 
 If this is the case, you can fix that by editing the `/etc/hosts` file so look
 like this:
+
 ```
 127.0.0.1	localhost
 127.0.1.1	host.example.com host

@@ -17,7 +17,7 @@ REQUIREMENTS = [
     'requests',
     'configparser',
     'tzlocal',
-    ]
+]
 
 SETUP_REQUIREMENTS = []
 
@@ -58,6 +58,6 @@ setup(
     test_suite='tests',
     tests_require=TEST_REQUIREMENTS,
     url='https://gitlab.science.ru.nl/bram/sch',
-    version='0.7.2',
+    version='0.7.3',
     zip_safe=False,
 )
