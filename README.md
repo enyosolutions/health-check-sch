@@ -7,6 +7,8 @@
 A cron shell wrapper for registering and updating cron jobs automatically in
 [healthchecks](https://healthchecks.io) or your [own hosted copy of Healthchecks](https://github.com/healthchecks/healthchecks).
 
+> Package initialy developed by Bram Daams. I've improved it to allow auto registering of jobs via the cli also.
+
 > WARNING: once setup and configured, the code in this package runs as user specified in the cron jobs and is wrapped around the cron job commands. Errors in this package could prevent your cron jobs from being executed.
 
 ## Installation
