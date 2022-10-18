@@ -7,7 +7,7 @@
 A cron shell wrapper for registering and updating cron jobs automatically in
 [healthchecks](https://healthchecks.io) or your [own hosted copy of Healthchecks](https://github.com/healthchecks/healthchecks).
 
-> Package initialy developed by Bram Daams. I've improved it to allow auto registering of jobs via the cli also.
+> Package initialy developed by Bram Daams. I've improved it to allow auto registering of jobs via the cli also and setting the sch config file.
 
 > WARNING: once setup and configured, the code in this package runs as user specified in the cron jobs and is wrapped around the cron job commands. Errors in this package could prevent your cron jobs from being executed.
 
@@ -81,6 +81,15 @@ up      5 days ago      restic_check
 ```
 
 ## Configuration
+
+Run the comment to initialize your configuration 
+
+```
+sch init -u <apiUrl> -k <apiKey>
+```
+
+You can also create the file manually.
+
 
 Create a configuration file `~/.sch.conf` that looks like:
 
