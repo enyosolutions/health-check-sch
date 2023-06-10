@@ -152,7 +152,7 @@ def shell(command):
     # command = sys.argv[2]
     job_id = get_job_id(command)
 
-    print("job_id: %s" % job_id + ' ' + command)
+    logging.info("job_id: %s" % job_id + ' ' + command)
     # find system cron job that executes this command
     try:
         job = Cron(job_id, command).get_job()
@@ -169,7 +169,6 @@ def shell(command):
     except Exception as error:
         # do not update or create checks because of communication problems
         logging.error('Ooops! Could not communicate with the healthchecks API')
-        print(error)
         interfere = False
     else:
         if check:
@@ -412,9 +411,7 @@ class Healthchecks:
 
         # post the data
         try:
-            print('\n\n\n')
-            print('{}checks/'.format(self.cred.api_url))
-            print('\n\n\n')
+            logging.debug('{}checks/'.format(self.cred.api_url))
             response = requests.post(
                 url=check['update_url'],
                 headers=self.auth_headers,
@@ -459,8 +456,6 @@ class Healthchecks:
                 headers=self.auth_headers,
                 json=self._metadata
             )
-            print('\n\n\n')
-            print(response.text)
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             logging.error(
