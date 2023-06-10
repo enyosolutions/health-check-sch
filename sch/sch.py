@@ -168,7 +168,7 @@ def shell(command):
             check = health_checks.find_check(job)
     except Exception as error:
         # do not update or create checks because of communication problems
-        logging.error('Ooops! Could not communicate with the healthchecks API')
+        logging.error('Ooops! Could not communicate with the healthchecks API, error: %s' % error)
         interfere = False
     else:
         if check:
